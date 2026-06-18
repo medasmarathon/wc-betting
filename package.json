@@ -1,0 +1,47 @@
+{
+  "name": "wc-betting",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:rules": "firebase emulators:exec --only firestore \"vitest run tests/rules\"",
+    "test:integration": "firebase emulators:exec --only auth,firestore \"vitest run tests/integration\"",
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "emulators": "firebase emulators:start --import=.firebase-emulator-data --export-on-exit=.firebase-emulator-data",
+    "emulators:fresh": "firebase emulators:start",
+    "seed": "tsx scripts/seed-local.ts",
+    "dev:emulated": "concurrently \"npm run emulators\" \"npm run dev\""
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "firebase": "^12.6.0",
+    "firebase-admin": "^13.6.0",
+    "next": "^16.0.7",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "concurrently": "^9.2.1",
+    "dotenv": "^17.2.3",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.0.7",
+    "firebase-tools": "^14.26.0",
+    "tailwindcss": "^4.1.17",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.14"
+  }
+}
