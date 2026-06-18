@@ -1,251 +1,220 @@
-# Implementation Specification: Private World Cup Friends Betting App
+# Updated Implementation Specification: Private World Cup Friends Betting App with Firestore
 
 ## 1. Project Summary
 
-Build a private, invite-only web app for a small group of friends to place fun bets on upcoming World Cup matches.
+Build a private, invite-only web app for a small group of friends to place fun, points-only bets on upcoming World Cup matches.
 
-The app is for fewer than 10 users. It should use virtual points only. It must not process real-money payments, withdrawals, deposits, or public wagering.
+The app is for fewer than 10 users. It must not process real-money deposits, withdrawals, payments, or public wagering.
 
-The core product should let users:
+Users should be able to:
 
-1. Log in.
-2. See upcoming World Cup matches.
-3. Place a bet before a match starts.
-4. Automatically lock betting when the match starts.
-5. Let an admin enter or verify match results.
-6. Settle bets and update user balances.
-7. Show leaderboard and bet history.
+1. Sign in.
+2. View upcoming World Cup matches.
+3. Place one bet per match before kickoff.
+4. Have bets automatically locked when the match starts.
+5. See their bet history.
+6. See the group leaderboard.
+7. Let an admin enter results and settle bets.
 
-The app should prioritize correctness, auditability, and simplicity over complex betting features.
+The app should prioritize simplicity, correctness, and auditability.
 
 ---
 
-## 2. Recommended Stack
-
-### Frontend and Backend
+## 2. Final Recommended Stack
 
 Use:
 
 * Next.js with App Router
 * TypeScript
 * Tailwind CSS
-* Supabase Auth
-* Supabase Postgres
-* Supabase Row Level Security
+* Firebase Auth
+* Cloud Firestore
+* Firebase Admin SDK
+* Firestore Security Rules
 * Vercel hosting
-* Supabase hosted database
+* GitHub for deployment
 
-Suggested libraries:
+Suggested packages:
 
-* `@supabase/supabase-js`
-* `@supabase/ssr`
-* `zod`
-* `date-fns` or `luxon`
-* `clsx`
-* `tailwind-merge`
-* Optional: `shadcn/ui`
+```bash
+npm install firebase firebase-admin zod date-fns
+```
 
-Do not use Google Sheets.
+Optional UI:
+
+```bash
+npx shadcn@latest init
+```
 
 ---
 
 ## 3. Hosting Plan
 
-### Production Hosting
+### Frontend and Server
 
-Use:
+Host the Next.js app on Vercel.
 
-* Vercel for the Next.js application
-* Supabase for database, authentication, and server-side API access
-* GitHub for source control and Vercel deployments
+Use Vercel for:
 
-### Environments
+* Static pages
+* Server-rendered pages
+* API routes
+* Server actions
+* Optional cron endpoint
 
-Create:
+### Backend Services
 
-1. Local development
-2. Production
+Use Firebase for:
 
-Environment variables:
+* Authentication
+* Firestore database
+* Security rules
+* Optional local emulator development
+
+### Environment Variables
+
+Use these Vercel environment variables:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+
+FIREBASE_PROJECT_ID=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
+
 CRON_SECRET=
 ADMIN_EMAILS=
 ```
 
 Rules:
 
-* `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be exposed to the browser.
-* `SUPABASE_SERVICE_ROLE_KEY` must only be used server-side.
-* Never expose the service role key in frontend code.
-* Use `CRON_SECRET` to protect scheduled admin endpoints.
+* `NEXT_PUBLIC_*` variables can be used in browser code.
+* Firebase Admin credentials must only be used server-side.
+* Never expose `FIREBASE_PRIVATE_KEY` to client code.
 * `ADMIN_EMAILS` is a comma-separated list of admin emails.
-
-### Deployment Flow
-
-1. Push code to GitHub.
-2. Connect GitHub repo to Vercel.
-3. Add environment variables in Vercel.
-4. Create Supabase project.
-5. Run SQL migrations in Supabase.
-6. Configure Supabase Auth redirect URLs.
-7. Deploy production app.
-
-### Scheduled Jobs
-
-Because this is a small app, do not rely only on scheduled jobs.
-
-Implement lock and settlement logic in two ways:
-
-1. Passive enforcement:
-
-   * Every API route that reads or writes match/bet data must check whether matches should be locked.
-   * If `now >= kickoff_at`, betting must be rejected even if `matches.status` has not been updated yet.
-
-2. Optional scheduled job:
-
-   * A Vercel Cron endpoint can run once per day to clean up statuses.
-   * This is only a helper, not the source of truth.
+* `CRON_SECRET` protects cron/admin maintenance endpoints.
 
 ---
 
-## 4. Scope
+## 4. Firebase Setup
 
-### In Scope for MVP
+Create one Firebase project.
+
+Enable:
+
+* Firebase Authentication
+* Cloud Firestore
+
+For authentication, use one of:
+
+1. Email/password
+2. Google sign-in
+3. Email link sign-in
+
+For the MVP, email/password or Google sign-in is simplest.
+
+Use an `invites` collection to restrict who can access the app.
+
+---
+
+## 5. Scope
+
+### In Scope
 
 The MVP should support:
 
 * Invite-only users
-* Login via email magic link or email/password
-* Admin-created users or allowlisted emails
+* Firebase Auth login
+* Admin and regular user roles
 * World Cup match list
-* Betting on match result: home win, draw, away win
+* Betting on match result:
+
+  * HOME
+  * DRAW
+  * AWAY
 * Optional score prediction
 * Point-based wallet
-* Bet locking at kickoff
+* Automatic locking at kickoff
 * Admin result entry
 * Automatic settlement
 * Leaderboard
-* User bet history
-* Admin audit log
+* Bet history
+* Audit log
 
-### Out of Scope for MVP
+### Out of Scope
 
 Do not implement:
 
 * Real-money payments
-* Deposits or withdrawals
-* Public registration
-* Complex odds markets
-* Parlays or accumulators
-* Live in-play betting
+* Deposits
+* Withdrawals
+* Public user registration
+* Public betting
+* Live betting
+* Parlays
 * Cash-out
-* External sportsbook integrations
-* Automated scraping unless explicitly added later
-* Mobile app
-* Push notifications
-* Multi-league support beyond World Cup
+* Complex odds markets
+* External sportsbook integration
+* Automated sports-data API integration unless requested later
 
 ---
 
-## 5. Product Rules
+## 6. Core Betting Rules
 
-### Currency
+### Starting Balance
 
-Use virtual points only.
-
-Default starting balance:
+Each invited user starts with:
 
 ```text
-1000 points per user
+1000 points
 ```
 
-Point balances are internal game credits and have no monetary value.
+These points have no monetary value.
 
-### Match Betting
+### Bet Type
 
-For MVP, each user can place one primary bet per match.
+For MVP, each user may place one bet per match.
 
-Supported market:
+Market:
 
 ```text
-Match result after regular time:
+Regular-time match result:
 - HOME
 - DRAW
 - AWAY
 ```
 
-For knockout matches, MVP should still settle based on regular-time result unless the admin configures otherwise.
-
-Optional score prediction can be added as a separate fun field:
-
-```text
-predicted_home_score
-predicted_away_score
-```
-
-Score prediction does not affect the primary bet unless explicitly enabled.
+For knockout games, still settle by regular-time result unless admin changes the rules later.
 
 ### Bet Locking
 
-A bet is valid only if:
+A bet is allowed only when:
 
 ```text
-current server time < match.kickoff_at
-match.status = OPEN or SCHEDULED
-user has enough available points
-user has not already placed a bet on the same market for the same match
+serverNow < match.kickoffAt
+match.status is SCHEDULED or OPEN
+user has enough balance
+user has not already placed a bet on this match
 ```
 
-Once kickoff time is reached:
+After kickoff:
 
 ```text
-No new bets allowed.
-No edits allowed.
-No cancellations allowed.
+No new bets.
+No edits.
+No cancellations.
 ```
 
-Server-side validation is mandatory. Client-side validation is only for UX.
-
-### Settlement
-
-When a result is entered:
-
-1. Determine winning outcome:
-
-   * home score > away score = HOME
-   * home score = away score = DRAW
-   * home score < away score = AWAY
-
-2. For each bet:
-
-   * If user pick matches winning outcome:
-
-     * bet status = WON
-     * payout = stake * odds
-   * Otherwise:
-
-     * bet status = LOST
-     * payout = 0
-
-3. Write wallet transactions:
-
-   * Stake should be deducted when bet is placed.
-   * Payout should be credited when bet wins.
-   * Lost bets receive no additional transaction.
-
-4. Mark match as SETTLED.
-
-Settlement must be idempotent. Running settlement twice must not duplicate payouts.
+Always enforce locking on the server. Client-side countdowns are only for user experience.
 
 ### Odds
 
-Use simple fixed odds for MVP.
+Use fixed odds per match.
 
-Default odds:
+Default:
 
 ```text
 HOME: 2.0
@@ -253,570 +222,417 @@ DRAW: 3.0
 AWAY: 2.0
 ```
 
-Admin can edit odds before kickoff.
+When a user places a bet, copy the odds into the bet document. Existing bets must not change if admin later edits match odds.
 
-Once any bet exists for a match, changing odds should not change existing bets. Each bet stores the odds at the time of placement.
+### Settlement
+
+When admin enters the final score:
+
+```text
+homeScore > awayScore => HOME wins
+homeScore = awayScore => DRAW wins
+homeScore < awayScore => AWAY wins
+```
+
+Settlement logic:
+
+1. Read match.
+2. Confirm result exists.
+3. Confirm match has not already been settled.
+4. Read all pending bets for the match.
+5. For winning bets:
+
+   * Set status to WON.
+   * Set payout to stake * odds.
+   * Add payout transaction.
+   * Increase user balance.
+6. For losing bets:
+
+   * Set status to LOST.
+   * Payout is 0.
+7. Set match status to SETTLED.
+8. Write audit log.
+
+Settlement must be idempotent. Running it twice must not duplicate payouts.
+
+---
+
+## 7. Firestore Data Model
+
+Use denormalized documents. Do not try to model Firestore like SQL.
+
+Recommended collections:
+
+```text
+users
+invites
+matches
+bets
+walletTransactions
+leaderboard
+auditLogs
+```
+
+---
+
+## 8. Collection Schemas
+
+### `users/{userId}`
+
+```ts
+type UserDoc = {
+  email: string
+  displayName: string
+  role: "USER" | "ADMIN"
+  isActive: boolean
+  balance: number
+  startingBalance: number
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
+
+Notes:
+
+* Store current balance directly for simple reads.
+* Also write wallet transactions for auditability.
+* Balance updates must happen only in server-side transactions.
+
+---
+
+### `invites/{emailKey}`
+
+Use lowercase email as document ID, with unsafe characters normalized if needed.
+
+```ts
+type InviteDoc = {
+  email: string
+  displayName?: string
+  role: "USER" | "ADMIN"
+  acceptedBy?: string
+  acceptedAt?: Timestamp
+  createdAt: Timestamp
+}
+```
+
+Usage:
+
+* When user signs in, check whether their email exists in `invites`.
+* If not invited, block access.
+* If invited and no user profile exists, create `users/{uid}`.
+
+---
+
+### `matches/{matchId}`
+
+```ts
+type MatchDoc = {
+  externalId?: string
+
+  homeTeam: string
+  awayTeam: string
+  homeTeamCode?: string
+  awayTeamCode?: string
+
+  groupName?: string
+  stage: "GROUP" | "ROUND_OF_32" | "ROUND_OF_16" | "QUARTER_FINAL" | "SEMI_FINAL" | "FINAL"
+
+  kickoffAt: Timestamp
+  status: "SCHEDULED" | "OPEN" | "LOCKED" | "LIVE" | "COMPLETED" | "SETTLED" | "VOIDED"
+
+  odds: {
+    HOME: number
+    DRAW: number
+    AWAY: number
+  }
+
+  homeScore?: number
+  awayScore?: number
+  resultPick?: "HOME" | "DRAW" | "AWAY"
+
+  betCount: number
+  totalStaked: number
+
+  lockedAt?: Timestamp
+  completedAt?: Timestamp
+  settledAt?: Timestamp
+
+  createdBy?: string
+  updatedBy?: string
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
+
+---
+
+### `bets/{betId}`
+
+Use deterministic bet ID to prevent duplicate bets:
+
+```text
+{matchId}_{userId}
+```
+
+Example:
+
+```text
+match_abc_user_xyz
+```
+
+Schema:
+
+```ts
+type BetDoc = {
+  userId: string
+  userEmail: string
+  userDisplayName: string
+
+  matchId: string
+  matchLabel: string
+  homeTeam: string
+  awayTeam: string
+  kickoffAt: Timestamp
+
+  pick: "HOME" | "DRAW" | "AWAY"
+  stake: number
+  odds: number
+  potentialPayout: number
+
+  predictedHomeScore?: number
+  predictedAwayScore?: number
+
+  status: "PENDING" | "WON" | "LOST" | "VOIDED"
+  payout: number
+
+  placedAt: Timestamp
+  settledAt?: Timestamp
+}
+```
+
+Denormalized match/user fields are intentional. They make bet history easy to display without joins.
+
+---
+
+### `walletTransactions/{transactionId}`
+
+```ts
+type WalletTransactionDoc = {
+  userId: string
+  userDisplayName: string
+
+  type:
+    | "INITIAL_CREDIT"
+    | "BET_STAKE"
+    | "BET_PAYOUT"
+    | "ADMIN_ADJUSTMENT"
+    | "VOID_REFUND"
+
+  amount: number
+  balanceAfter: number
+
+  betId?: string
+  matchId?: string
+
+  description: string
+  createdBy?: string
+  createdAt: Timestamp
+}
+```
+
+Rules:
+
+* Negative amount for stake.
+* Positive amount for payout, refund, or admin adjustment.
+* Never delete wallet transactions.
+
+---
+
+### `leaderboard/{userId}`
+
+Keep this as a denormalized fast-read document.
+
+```ts
+type LeaderboardDoc = {
+  userId: string
+  displayName: string
+  balance: number
+  totalBets: number
+  wonBets: number
+  lostBets: number
+  pendingBets: number
+  totalStaked: number
+  totalPayout: number
+  netProfit: number
+  updatedAt: Timestamp
+}
+```
+
+Update this document inside bet placement and settlement transactions.
+
+---
+
+### `auditLogs/{logId}`
+
+```ts
+type AuditLogDoc = {
+  actorId?: string
+  actorEmail?: string
+
+  action: string
+  entityType: "USER" | "MATCH" | "BET" | "WALLET" | "SYSTEM"
+  entityId?: string
+
+  before?: unknown
+  after?: unknown
+
+  createdAt: Timestamp
+}
+```
+
+Use audit logs for:
+
+* Match creation
+* Match edits
+* Odds changes
+* Result entry
+* Settlement
+* Void match
+* Admin balance adjustment
+
+---
+
+## 9. Required Indexes
+
+Create composite indexes for:
+
+### Matches
+
+```text
+matches
+where status in [...]
+order by kickoffAt asc
+```
+
+### User Bet History
+
+```text
+bets
+where userId == currentUserId
+order by placedAt desc
+```
+
+### Match Bets
+
+```text
+bets
+where matchId == matchId
+order by placedAt asc
+```
 
 ### Leaderboard
 
-Rank users by:
+```text
+leaderboard
+order by balance desc
+```
+
+Firestore will usually prompt for missing index creation during development.
+
+---
+
+## 10. Security Model
+
+Use both:
+
+1. Firestore Security Rules
+2. Server-side validation with Firebase Admin SDK
+
+Client-side users can read safe data directly, but all sensitive writes should go through server-side API routes.
+
+### Client Can Read
+
+Regular users can read:
+
+* their own user profile
+* public match list
+* their own bets
+* leaderboard
+* settled match results
+
+Admins can read more.
+
+### Client Cannot Directly Write
+
+Users must not directly write:
+
+* bets
+* balances
+* wallet transactions
+* match results
+* settlement status
+* audit logs
+
+All of these go through server-side API routes.
+
+---
+
+## 11. Firestore Security Rules Strategy
+
+Use rules to prevent accidental or malicious direct writes.
+
+High-level rules:
 
 ```text
-current balance descending
+- Authenticated active users can read matches.
+- Users can read their own bets.
+- Users can read leaderboard.
+- Users can read their own user document.
+- Admins can read admin collections.
+- No client can directly create wallet transactions.
+- No client can directly update balances.
+- No client can directly settle matches.
+- No client can directly create audit logs.
 ```
 
-Also display:
+Use custom role data from `users/{uid}.role`.
 
-* total bets
-* won bets
-* lost bets
-* pending bets
-* total staked
-* total payout
-* net profit
+Keep rules conservative. Prefer denying writes and routing mutations through server-side logic.
 
 ---
 
-## 6. User Roles
+## 12. API Routes / Server Actions
 
-### Regular User
-
-Can:
-
-* View matches
-* View odds
-* Place bets before kickoff
-* View own bets
-* View leaderboard
-* View settled results
-
-Cannot:
-
-* Edit matches
-* Enter results
-* Change odds
-* Settle bets
-* View private admin audit details
-
-### Admin
-
-Can:
-
-* Create/edit matches
-* Import matches manually
-* Change odds before kickoff
-* Lock matches
-* Enter results
-* Settle matches
-* Void a match
-* Adjust user balances with reason
-* View audit logs
-
----
-
-## 7. Main Pages
-
-### Public / Auth Pages
-
-#### `/login`
-
-Purpose:
-
-* Let users sign in.
-
-Requirements:
-
-* Email magic link or email/password.
-* Show friendly message if email is not invited.
-* Redirect logged-in users to `/matches`.
-
----
-
-### User Pages
-
-#### `/matches`
-
-Purpose:
-
-* Main page showing World Cup matches.
-
-Sections:
-
-1. Upcoming matches
-2. Locked/live matches
-3. Completed/settled matches
-
-Each match card should show:
-
-* Home team
-* Away team
-* Kickoff time in user’s local time
-* Group/stage
-* Status
-* Odds
-* User’s existing bet, if any
-* Button to place bet if allowed
-
-Actions:
-
-* Click match to open detail page.
-
-#### `/matches/[matchId]`
-
-Purpose:
-
-* Match detail and bet placement.
-
-Show:
-
-* Match info
-* Countdown until lock
-* Betting options
-* User’s current balance
-* Existing bet if already placed
-* Bet history for this match after kickoff, if desired
-
-Bet form:
-
-* Pick: HOME / DRAW / AWAY
-* Stake
-* Optional score prediction
-* Confirm button
-
-Validation:
-
-* Stake must be positive.
-* Stake must be less than or equal to user balance.
-* Betting must be before kickoff.
-* User can only have one active bet for this match market.
-
-#### `/my-bets`
-
-Purpose:
-
-* Show user’s bet history.
-
-Filters:
-
-* Pending
-* Won
-* Lost
-* Voided
-* All
-
-Columns/cards:
-
-* Match
-* Pick
-* Stake
-* Odds
-* Potential payout
-* Status
-* Result
-* Created time
-
-#### `/leaderboard`
-
-Purpose:
-
-* Show group standings.
-
-Fields:
-
-* Rank
-* User display name
-* Current balance
-* Total bets
-* Wins
-* Losses
-* Pending
-* Net profit
-
----
-
-### Admin Pages
-
-#### `/admin`
-
-Purpose:
-
-* Admin dashboard.
-
-Show:
-
-* Matches needing result entry
-* Upcoming matches
-* Recently settled matches
-* Users and balances
-* Recent audit log
-
-#### `/admin/matches`
-
-Purpose:
-
-* Manage matches.
-
-Admin can:
-
-* Create match
-* Edit match before kickoff
-* Set odds
-* Lock match manually
-* Void match
-* Enter result
-* Trigger settlement
-
-#### `/admin/users`
-
-Purpose:
-
-* Manage invited users and balances.
-
-Admin can:
-
-* View users
-* Set display name
-* Mark user active/inactive
-* Adjust balance with required reason
-
-#### `/admin/audit-log`
-
-Purpose:
-
-* Show important admin actions and settlement actions.
-
----
-
-## 8. Database Schema
-
-Use Supabase Postgres.
-
-### Enum Types
-
-Create enums:
-
-```sql
-create type app_role as enum ('USER', 'ADMIN');
-
-create type match_status as enum (
-  'SCHEDULED',
-  'OPEN',
-  'LOCKED',
-  'LIVE',
-  'COMPLETED',
-  'SETTLED',
-  'VOIDED'
-);
-
-create type bet_pick as enum ('HOME', 'DRAW', 'AWAY');
-
-create type bet_status as enum (
-  'PENDING',
-  'WON',
-  'LOST',
-  'VOIDED'
-);
-
-create type transaction_type as enum (
-  'INITIAL_CREDIT',
-  'BET_STAKE',
-  'BET_PAYOUT',
-  'ADMIN_ADJUSTMENT',
-  'VOID_REFUND'
-);
-```
-
----
-
-### `profiles`
-
-Stores app-level user profiles.
-
-```sql
-create table profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text not null unique,
-  display_name text not null,
-  role app_role not null default 'USER',
-  is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-```
-
----
-
-### `matches`
-
-Stores World Cup fixtures.
-
-```sql
-create table matches (
-  id uuid primary key default gen_random_uuid(),
-  external_id text unique,
-  home_team text not null,
-  away_team text not null,
-  home_team_code text,
-  away_team_code text,
-  group_name text,
-  stage text not null default 'GROUP',
-  kickoff_at timestamptz not null,
-  status match_status not null default 'SCHEDULED',
-
-  home_odds numeric(8,2) not null default 2.00,
-  draw_odds numeric(8,2) not null default 3.00,
-  away_odds numeric(8,2) not null default 2.00,
-
-  home_score integer,
-  away_score integer,
-  result_pick bet_pick,
-
-  locked_at timestamptz,
-  completed_at timestamptz,
-  settled_at timestamptz,
-
-  created_by uuid references profiles(id),
-  updated_by uuid references profiles(id),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-
-  constraint different_teams check (home_team <> away_team),
-  constraint kickoff_reasonable check (kickoff_at > '2026-01-01'::timestamptz)
-);
-```
-
----
-
-### `bets`
-
-Stores user bets.
-
-```sql
-create table bets (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
-  match_id uuid not null references matches(id) on delete cascade,
-
-  pick bet_pick not null,
-  stake numeric(12,2) not null,
-  odds numeric(8,2) not null,
-  potential_payout numeric(12,2) generated always as (stake * odds) stored,
-
-  predicted_home_score integer,
-  predicted_away_score integer,
-
-  status bet_status not null default 'PENDING',
-  payout numeric(12,2) not null default 0,
-
-  placed_at timestamptz not null default now(),
-  settled_at timestamptz,
-
-  constraint positive_stake check (stake > 0),
-  constraint nonnegative_prediction check (
-    predicted_home_score is null or predicted_home_score >= 0
-  ),
-  constraint nonnegative_prediction_away check (
-    predicted_away_score is null or predicted_away_score >= 0
-  )
-);
-```
-
-Unique active bet rule:
-
-```sql
-create unique index one_bet_per_user_per_match
-on bets(user_id, match_id)
-where status in ('PENDING', 'WON', 'LOST');
-```
-
----
-
-### `wallet_transactions`
-
-Use ledger transactions instead of directly editing balances.
-
-```sql
-create table wallet_transactions (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
-  bet_id uuid references bets(id) on delete set null,
-  match_id uuid references matches(id) on delete set null,
-
-  type transaction_type not null,
-  amount numeric(12,2) not null,
-  description text not null,
-
-  created_by uuid references profiles(id),
-  created_at timestamptz not null default now(),
-
-  constraint nonzero_amount check (amount <> 0)
-);
-```
-
-Balance is calculated as:
-
-```sql
-sum(wallet_transactions.amount)
-```
-
-Do not store editable balance directly unless using a cached materialized value later.
-
----
-
-### `invites`
-
-Stores allowlisted emails.
-
-```sql
-create table invites (
-  id uuid primary key default gen_random_uuid(),
-  email text not null unique,
-  display_name text,
-  role app_role not null default 'USER',
-  accepted_at timestamptz,
-  created_at timestamptz not null default now()
-);
-```
-
----
-
-### `audit_logs`
-
-Stores sensitive actions.
-
-```sql
-create table audit_logs (
-  id uuid primary key default gen_random_uuid(),
-  actor_id uuid references profiles(id),
-  action text not null,
-  entity_type text not null,
-  entity_id uuid,
-  before_data jsonb,
-  after_data jsonb,
-  created_at timestamptz not null default now()
-);
-```
-
----
-
-## 9. Database Views and Functions
-
-### User Balance View
-
-```sql
-create view user_balances as
-select
-  p.id as user_id,
-  p.display_name,
-  coalesce(sum(w.amount), 0) as balance
-from profiles p
-left join wallet_transactions w on w.user_id = p.id
-group by p.id, p.display_name;
-```
-
-### Leaderboard View
-
-```sql
-create view leaderboard as
-select
-  p.id as user_id,
-  p.display_name,
-  coalesce(sum(w.amount), 0) as balance,
-  count(b.id) as total_bets,
-  count(b.id) filter (where b.status = 'WON') as won_bets,
-  count(b.id) filter (where b.status = 'LOST') as lost_bets,
-  count(b.id) filter (where b.status = 'PENDING') as pending_bets,
-  coalesce(sum(b.stake), 0) as total_staked,
-  coalesce(sum(b.payout), 0) as total_payout
-from profiles p
-left join wallet_transactions w on w.user_id = p.id
-left join bets b on b.user_id = p.id
-group by p.id, p.display_name
-order by balance desc;
-```
-
----
-
-## 10. Row Level Security
-
-Enable RLS on all app tables.
-
-General policies:
-
-### `profiles`
-
-* Users can read their own profile.
-* Users can read public leaderboard-safe profile fields for all active users.
-* Admins can read and update all profiles.
-
-### `matches`
-
-* All active authenticated users can read matches.
-* Only admins can insert/update/delete matches.
-
-### `bets`
-
-* Users can read their own bets.
-* Users can create their own bets only through a secure server action or RPC.
-* Users cannot update or delete bets after creation.
-* Admins can read all bets.
-* Admins should not directly edit bets except through settlement/void functions.
-
-### `wallet_transactions`
-
-* Users can read their own wallet transactions.
-* Users cannot insert/update/delete wallet transactions.
-* Only server-side privileged logic can create wallet transactions.
-* Admins can read all transactions.
-
-### `audit_logs`
-
-* Admins can read audit logs.
-* Regular users cannot read audit logs.
-
-Important:
-
-Bet placement, settlement, voiding, and admin adjustments should be done through server-side functions/API routes using controlled logic.
-
----
-
-## 11. API / Server Actions
-
-Use Next.js server actions or route handlers. Prefer server-side validation with Zod.
-
-### Auth
-
-#### `GET /login`
-
-Login page.
-
-#### `POST /auth/callback`
-
-Handles Supabase auth callback if needed.
-
----
+Use Next.js route handlers or server actions.
 
 ### User APIs
 
+#### `GET /api/me`
+
+Returns current user profile.
+
 #### `GET /api/matches`
 
-Returns list of matches.
+Returns matches.
 
-Query params:
+Query options:
 
 ```text
-status=upcoming|locked|completed|all
+upcoming
+locked
+completed
+all
 ```
 
-Must include whether current user has placed a bet.
+Each match should include whether current user has already placed a bet.
 
 #### `GET /api/matches/:id`
 
-Returns match detail, odds, status, and user bet if any.
+Returns match detail.
 
 #### `POST /api/bets`
 
-Creates a bet.
+Places a bet.
 
 Input:
 
@@ -830,70 +646,31 @@ Input:
 }
 ```
 
-Server rules:
-
-1. User must be authenticated.
-2. User must be active.
-3. Match must exist.
-4. Current time must be before `kickoff_at`.
-5. Match must not be locked, completed, settled, or voided.
-6. Stake must be positive.
-7. User balance must be sufficient.
-8. User must not already have an active bet for match.
-9. Odds must be copied from match at the time of bet.
-10. Insert bet.
-11. Insert wallet transaction with negative stake.
-12. Insert audit log or user activity log.
-
-Use a database transaction or Postgres RPC to guarantee atomicity.
+Must run in a Firestore transaction.
 
 #### `GET /api/my-bets`
 
-Returns current user’s bets.
+Returns current user’s bet history.
 
 #### `GET /api/leaderboard`
 
-Returns leaderboard.
+Returns leaderboard ordered by balance descending.
 
 ---
 
 ### Admin APIs
 
-All admin APIs require admin role.
-
 #### `POST /api/admin/matches`
 
 Create match.
-
-Input:
-
-```ts
-{
-  homeTeam: string
-  awayTeam: string
-  homeTeamCode?: string
-  awayTeamCode?: string
-  groupName?: string
-  stage: string
-  kickoffAt: string
-  homeOdds: number
-  drawOdds: number
-  awayOdds: number
-}
-```
 
 #### `PATCH /api/admin/matches/:id`
 
 Edit match.
 
-Rules:
-
-* Cannot edit teams/kickoff/odds after kickoff unless admin confirms and audit log is written.
-* Existing bets keep their stored odds.
-
 #### `POST /api/admin/matches/:id/lock`
 
-Manually lock match.
+Lock match manually.
 
 #### `POST /api/admin/matches/:id/result`
 
@@ -908,35 +685,17 @@ Input:
 }
 ```
 
-Rules:
-
-* Scores must be non-negative integers.
-* Store `result_pick`.
-* Set status to `COMPLETED`.
-
 #### `POST /api/admin/matches/:id/settle`
 
-Settle all pending bets.
-
-Rules:
-
-* Must be idempotent.
-* Do not duplicate payouts.
-* Only settle if result exists.
-* Set match status to `SETTLED`.
+Settle all pending bets for a match.
 
 #### `POST /api/admin/matches/:id/void`
 
-Void match.
-
-Rules:
-
-* Mark match as `VOIDED`.
-* Mark pending bets as `VOIDED`.
-* Refund stakes.
-* Do not refund already-settled bets unless implementing admin reversal later.
+Void match and refund pending bets.
 
 #### `POST /api/admin/users/:id/adjust-balance`
+
+Adjust user balance.
 
 Input:
 
@@ -947,352 +706,402 @@ Input:
 }
 ```
 
-Rules:
-
-* Reason is required.
-* Insert wallet transaction.
-* Insert audit log.
-
 ---
 
-## 12. Business Logic Details
+## 13. Bet Placement Transaction
 
-### Bet Placement Algorithm
+Use a Firestore transaction.
 
-Pseudo-code:
+Documents involved:
+
+```text
+users/{userId}
+matches/{matchId}
+bets/{matchId}_{userId}
+walletTransactions/{newTransactionId}
+leaderboard/{userId}
+auditLogs/{newLogId}
+```
+
+Algorithm:
 
 ```ts
 async function placeBet(userId, input) {
-  validate input with zod
+  validate input
 
-  begin transaction
+  runTransaction(async tx => {
+    user = tx.get(users/userId)
+    match = tx.get(matches/matchId)
+    betRef = bets/{matchId}_{userId}
+    existingBet = tx.get(betRef)
 
-  user = get active user
-  match = get match for update
-  now = current server time
+    serverNow = new Date()
 
-  if now >= match.kickoff_at:
-    lock match if not locked
-    throw "Betting is closed"
+    if user inactive -> throw
+    if existingBet exists -> throw
+    if serverNow >= match.kickoffAt -> throw
+    if match.status not in SCHEDULED/OPEN -> throw
+    if user.balance < stake -> throw
 
-  if match.status in ["LOCKED", "LIVE", "COMPLETED", "SETTLED", "VOIDED"]:
-    throw "Betting is closed"
+    odds = match.odds[pick]
+    potentialPayout = stake * odds
+    newBalance = user.balance - stake
 
-  existingBet = find active bet for user and match
-  if existingBet:
-    throw "You already placed a bet for this match"
-
-  balance = sum wallet transactions for user
-  if balance < stake:
-    throw "Insufficient balance"
-
-  odds = match odds matching selected pick
-
-  create bet
-  create wallet transaction amount = -stake
-
-  commit
-
-  return created bet
+    tx.set(betRef, betDoc)
+    tx.update(userRef, { balance: newBalance })
+    tx.update(matchRef, {
+      betCount: increment(1),
+      totalStaked: increment(stake)
+    })
+    tx.set(walletTransactionRef, stakeTransaction)
+    tx.set(leaderboardRef, updatedLeaderboard, { merge: true })
+    tx.set(auditLogRef, log)
+  })
 }
 ```
 
-### Locking Algorithm
+Important:
 
-Pseudo-code:
-
-```ts
-async function lockStartedMatches() {
-  update matches
-  set status = 'LOCKED',
-      locked_at = now()
-  where kickoff_at <= now()
-    and status in ('SCHEDULED', 'OPEN')
-}
-```
-
-Even if this job fails, `placeBet` must still reject bets after kickoff.
-
-### Settlement Algorithm
-
-Pseudo-code:
-
-```ts
-async function settleMatch(matchId) {
-  begin transaction
-
-  match = get match for update
-
-  if match.status = 'SETTLED':
-    return already settled
-
-  if match.home_score is null or match.away_score is null:
-    throw "Result missing"
-
-  resultPick = calculate result
-
-  pendingBets = get pending bets for match for update
-
-  for each bet:
-    if bet.pick == resultPick:
-      payout = bet.stake * bet.odds
-      update bet status WON, payout, settled_at
-      insert wallet transaction BET_PAYOUT amount = payout
-    else:
-      update bet status LOST, payout = 0, settled_at
-
-  update match status SETTLED, settled_at
-
-  insert audit log
-
-  commit
-}
-```
+* Do not trust client-supplied odds.
+* Do not trust client-supplied payout.
+* Do not trust client-supplied user ID.
+* Use server time.
+* Use deterministic bet ID to prevent duplicates.
 
 ---
 
-## 13. Timezone Requirements
+## 14. Locking Logic
 
-Store all times in UTC using `timestamptz`.
+Implement passive locking.
 
-Display times in the user’s local timezone.
+Before every match list read or bet placement, check whether any matches should be treated as locked.
 
-For this project owner, the default display timezone can be:
+For bet placement, the true rule is:
+
+```ts
+if (Date.now() >= match.kickoffAt.toMillis()) {
+  reject bet
+}
+```
+
+Optionally, update old open matches:
+
+```ts
+update all matches where kickoffAt <= now and status in SCHEDULED/OPEN to LOCKED
+```
+
+This can be done by:
+
+* admin action
+* scheduled endpoint
+* opportunistic cleanup when admin opens dashboard
+
+Do not depend on cron for correctness.
+
+---
+
+## 15. Settlement Transaction
+
+Use a Firestore transaction or carefully chunked transactions if many bets exist.
+
+For fewer than 10 users, a single transaction is fine.
+
+Documents involved:
 
 ```text
-Asia/Ho_Chi_Minh
+matches/{matchId}
+bets/{betId} for each pending bet
+users/{userId} for each bettor
+walletTransactions/{transactionId}
+leaderboard/{userId}
+auditLogs/{logId}
 ```
 
-But the frontend should ideally use browser timezone detection.
+Algorithm:
 
-Kickoff lock must use server time, not browser time.
+```ts
+async function settleMatch(matchId, adminUserId) {
+  runTransaction(async tx => {
+    match = tx.get(matchRef)
+
+    if match.status == SETTLED:
+      return
+
+    if scores missing:
+      throw
+
+    resultPick = calculateResultPick(match.homeScore, match.awayScore)
+
+    pendingBets = query bets where matchId == matchId and status == PENDING
+
+    for each bet:
+      if bet.pick == resultPick:
+        payout = bet.stake * bet.odds
+        newBalance = user.balance + payout
+
+        tx.update(betRef, {
+          status: "WON",
+          payout,
+          settledAt: serverTimestamp()
+        })
+
+        tx.update(userRef, {
+          balance: newBalance
+        })
+
+        tx.set(walletTransactionRef, {
+          type: "BET_PAYOUT",
+          amount: payout,
+          balanceAfter: newBalance
+        })
+
+        tx.set(leaderboardRef, updatedStats, { merge: true })
+      else:
+        tx.update(betRef, {
+          status: "LOST",
+          payout: 0,
+          settledAt: serverTimestamp()
+        })
+
+        tx.set(leaderboardRef, updatedStats, { merge: true })
+
+    tx.update(matchRef, {
+      status: "SETTLED",
+      resultPick,
+      settledAt: serverTimestamp()
+    })
+
+    tx.set(auditLogRef, settlementLog)
+  })
+}
+```
+
+Idempotency requirement:
+
+* If match is already `SETTLED`, return without writing payouts.
+* Only process bets with `status == PENDING`.
+* Use unique transaction IDs if needed:
+
+  * `payout_{betId}`
 
 ---
 
-## 14. Match Data Strategy
+## 16. Pages
 
-For MVP, use manual admin entry or seed data.
+### `/login`
 
-Recommended approach:
+Sign-in page.
 
-1. Create an admin-only seed page or script.
-2. Add World Cup fixtures manually with:
+Requirements:
 
-   * teams
-   * team codes
-   * stage/group
-   * kickoff time
-   * default odds
+* Login with Firebase Auth.
+* After login, check invite and profile.
+* If not invited, show blocked message.
 
-Later, optionally add an external sports API integration.
+### `/matches`
 
-Do not block MVP on automatic schedule import.
+Main match list.
 
-Seed script should be repeatable:
+Sections:
 
-* If `external_id` exists, update match.
-* If not, insert match.
+* Upcoming
+* Locked/live
+* Completed/settled
 
----
+Each card shows:
 
-## 15. UI Requirements
+* Teams
+* Group/stage
+* Kickoff time
+* Status
+* Odds
+* Existing user bet, if any
+* Place bet button if available
 
-### Design Style
+### `/matches/[matchId]`
 
-Simple, mobile-friendly, fun.
-
-Suggested style:
-
-* Card-based layout
-* Country/team badges or emoji flags if easy
-* Clear countdown before match lock
-* Strong status badges:
-
-  * Open
-  * Locked
-  * Completed
-  * Settled
-  * Voided
-
-### Match Card
+Match details and bet form.
 
 Show:
 
-```text
-Brazil vs Scotland
-Group C
-Kickoff: Jun 25, 05:00
-Status: Open
-Your bet: Brazil, 100 pts
-```
-
-Buttons:
-
-* `Place Bet`
-* `View Bet`
-* Admin only: `Enter Result`, `Settle`
-
-### Bet Form
-
-Fields:
-
-* Pick
-* Stake
-* Optional score prediction
-
-Show:
-
+* Match info
+* Countdown
+* Odds
 * Current balance
-* Potential payout
-* Lock time
+* Existing bet
+* Bet form if open
 
-Confirmation text:
+### `/my-bets`
 
-```text
-You are betting 100 points on Brazil at 2.00 odds.
-Potential payout: 200 points.
-Bets cannot be changed after submission.
-```
+User bet history.
 
-### Leaderboard
+Filters:
 
-Use a table on desktop and cards on mobile.
+* Pending
+* Won
+* Lost
+* Voided
+* All
+
+### `/leaderboard`
+
+Group leaderboard.
 
 Fields:
 
 * Rank
 * Name
 * Balance
-* W-L
-* Pending
-* Net
+* Total bets
+* Wins
+* Losses
+* Pending bets
+* Net profit
+
+### `/admin`
+
+Admin dashboard.
+
+Show:
+
+* Matches needing result
+* Upcoming matches
+* Recently settled matches
+* Users
+* Recent audit logs
+
+### `/admin/matches`
+
+Admin match management.
+
+Actions:
+
+* Create match
+* Edit match
+* Change odds before kickoff
+* Lock match
+* Enter result
+* Settle match
+* Void match
+
+### `/admin/users`
+
+Admin user management.
+
+Actions:
+
+* View users
+* Adjust balance with required reason
+* Activate/deactivate user
 
 ---
 
-## 16. Security Requirements
+## 17. Local Development
 
-1. App must be invite-only.
-2. Do not allow public signup unless email is in `invites`.
-3. All sensitive actions must be validated server-side.
-4. Use RLS on all tables.
-5. Service role key must never be exposed to browser.
-6. Admin checks must happen server-side.
-7. Users cannot edit bets after placement.
-8. Users cannot create wallet transactions directly.
-9. Users cannot update match results.
-10. All admin changes must create audit logs.
+Use Firebase Emulator Suite if possible.
 
----
+Recommended local commands:
 
-## 17. Anti-Cheat and Integrity Requirements
+```bash
+firebase init
+firebase emulators:start
+npm run dev
+```
 
-Important risks:
+Use emulators for:
 
-* User places bet after kickoff.
-* User edits bet after seeing result.
-* Admin accidentally settles twice.
-* Balance becomes inconsistent.
-* Odds change after bet placement.
-
-Required protections:
-
-1. Server-side kickoff check.
-2. Immutable bet records after placement.
-3. Store odds on bet at placement time.
-4. Ledger-based wallet transactions.
-5. Idempotent settlement.
-6. Audit logs for admin actions.
-7. Unique constraint preventing duplicate active bets.
-8. Do not trust client time.
-9. Do not trust client-calculated payout.
+* Auth
+* Firestore
+* Security Rules testing
 
 ---
 
-## 18. Error Messages
+## 18. Testing Requirements
 
-Use friendly error messages:
-
-* `Betting is closed for this match.`
-* `You already placed a bet on this match.`
-* `Insufficient balance.`
-* `Invalid stake amount.`
-* `Only admins can perform this action.`
-* `This match has already been settled.`
-* `Result must be entered before settlement.`
-
----
-
-## 19. Testing Requirements
-
-Add tests for core business logic.
-
-Minimum test cases:
+Minimum tests:
 
 ### Bet Placement
 
-* User can place bet before kickoff.
-* User cannot place bet after kickoff.
-* User cannot bet more than balance.
-* User cannot place duplicate bet on same match.
+* Can place bet before kickoff.
+* Cannot place bet after kickoff.
+* Cannot bet with insufficient balance.
+* Cannot bet twice on same match.
 * Bet stores odds at placement time.
-* Stake transaction is created.
-
-### Locking
-
-* Match locks after kickoff.
-* Open match remains open before kickoff.
-* Bet API rejects after kickoff even if status still says open.
+* Stake deducts balance.
+* Wallet transaction is created.
 
 ### Settlement
 
-* Winning bet receives payout.
-* Losing bet receives no payout.
-* Draw result settles DRAW bets.
-* Settlement is idempotent.
-* Match becomes SETTLED.
-* Wallet balance is correct after settlement.
+* HOME result pays HOME bets.
+* DRAW result pays DRAW bets.
+* AWAY result pays AWAY bets.
+* Losing bets get zero payout.
+* Settlement cannot pay twice.
+* Match status becomes SETTLED.
+* Leaderboard updates.
 
 ### Admin
 
-* Non-admin cannot create match.
-* Non-admin cannot enter result.
+* Regular user cannot create match.
+* Regular user cannot enter result.
+* Regular user cannot settle match.
 * Admin adjustment requires reason.
-* Admin actions create audit log.
+* Admin actions create audit logs.
+
+### Security Rules
+
+* User cannot write their own balance.
+* User cannot create wallet transaction.
+* User cannot edit bet after placement.
+* User cannot write result.
+* User can read own bets.
+* User cannot read other users’ private bet documents before kickoff if that rule is desired.
 
 ---
 
-## 20. Suggested Folder Structure
+## 19. Suggested Folder Structure
 
 ```text
 src/
   app/
     login/
+      page.tsx
+
     matches/
       page.tsx
       [matchId]/
         page.tsx
+
     my-bets/
       page.tsx
+
     leaderboard/
       page.tsx
+
     admin/
       page.tsx
       matches/
+        page.tsx
       users/
+        page.tsx
       audit-log/
+        page.tsx
+
     api/
-      bets/
+      me/
         route.ts
       matches/
+        route.ts
+      bets/
         route.ts
       leaderboard/
         route.ts
       admin/
         matches/
-        users/
+        route.ts
       cron/
         lock-matches/
-        route.ts
+          route.ts
 
   components/
     match-card.tsx
@@ -1302,71 +1111,67 @@ src/
     admin-result-form.tsx
 
   lib/
-    supabase/
+    firebase/
       client.ts
-      server.ts
       admin.ts
     auth.ts
     roles.ts
     betting.ts
     settlement.ts
-    time.ts
     validation.ts
+    time.ts
 
   types/
-    database.ts
+    firebase.ts
     betting.ts
 
-supabase/
-  migrations/
-  seed.sql
+firestore.rules
+firestore.indexes.json
+firebase.json
 ```
 
 ---
 
-## 21. Implementation Phases
+## 20. Implementation Phases
 
-### Phase 1: Project Setup
+### Phase 1: Setup
 
-* Create Next.js app.
-* Configure TypeScript, Tailwind, linting.
-* Create Supabase project.
-* Add environment variables.
-* Implement Supabase client/server helpers.
-* Add auth pages.
+* Create Next.js project.
+* Add Tailwind.
+* Add Firebase client SDK.
+* Add Firebase Admin SDK.
+* Configure environment variables.
+* Add login page.
 
 Acceptance criteria:
 
 * User can log in.
-* App can read current user session.
+* App can read current Firebase user.
 * Protected pages redirect unauthenticated users.
 
 ---
 
-### Phase 2: Database and Auth
+### Phase 2: Firestore Model
 
-* Add schema migrations.
-* Enable RLS.
-* Add profile creation flow.
-* Add invites table.
+* Create Firestore collections.
+* Add security rules.
+* Add invite/profile creation logic.
 * Add admin role.
-* Seed admin user.
 
 Acceptance criteria:
 
-* Only invited users can access app.
-* Admin user can access `/admin`.
-* Regular user cannot access `/admin`.
+* Only invited users can enter.
+* Admin can access `/admin`.
+* Regular users cannot access `/admin`.
 
 ---
 
 ### Phase 3: Matches
 
-* Add matches table.
 * Add admin match creation.
 * Add match list page.
 * Add match detail page.
-* Seed initial World Cup matches.
+* Seed initial World Cup matches manually.
 
 Acceptance criteria:
 
@@ -1379,97 +1184,78 @@ Acceptance criteria:
 ### Phase 4: Betting
 
 * Add bet placement API.
-* Add wallet transactions.
-* Add user balance view.
-* Add bet form.
-* Add duplicate bet protection.
+* Use Firestore transaction.
+* Deduct balance.
+* Create wallet transaction.
+* Update leaderboard.
 
 Acceptance criteria:
 
 * User can place valid bet.
-* Stake is deducted.
-* User cannot overbet.
-* User cannot bet twice on same match.
-* User cannot bet after kickoff.
+* Duplicate bet is blocked.
+* Over-betting is blocked.
+* After-kickoff bet is blocked.
 
 ---
 
-### Phase 5: Results and Settlement
+### Phase 5: Result and Settlement
 
-* Add admin result form.
-* Add settlement logic.
-* Add bet status display.
+* Add result entry form.
+* Add settlement route.
+* Update bet statuses.
 * Add payout transactions.
-* Add idempotency.
+* Update leaderboard.
 
 Acceptance criteria:
 
-* Admin can enter result.
-* Admin can settle match.
-* Winning users receive points.
-* Losing users do not.
-* Running settlement twice does not duplicate payout.
+* Admin can settle a match.
+* Winners receive points.
+* Losers receive no payout.
+* Settlement is idempotent.
 
 ---
 
-### Phase 6: Leaderboard and History
+### Phase 6: Polish and Deploy
 
-* Add leaderboard view/page.
-* Add my bets page.
-* Add filters.
-
-Acceptance criteria:
-
-* Leaderboard reflects balances.
-* User can view all their bets.
-* Bet statuses are clear.
-
----
-
-### Phase 7: Polish and Deployment
-
-* Add responsive design.
+* Improve mobile UI.
 * Add loading/error states.
-* Add audit log UI.
+* Add audit log page.
 * Deploy to Vercel.
-* Verify production auth redirect.
-* Verify environment variables.
+* Configure production Firebase settings.
 
 Acceptance criteria:
 
 * Production app works end to end.
-* Admin can manage matches.
-* Users can bet from mobile.
-* Settlement works in production.
+* Friends can log in and bet.
+* Admin can enter results and settle bets.
 
 ---
 
-## 22. LLM Implementation Instructions
+## 21. LLM Implementation Instructions
 
-When implementing this project:
+When implementing:
 
-1. Build the MVP first.
-2. Do not add real-money features.
-3. Use TypeScript everywhere.
-4. Keep business logic server-side.
-5. Never trust client-provided time, odds, payout, user ID, or balance.
-6. Use database transactions or Supabase RPC for bet placement and settlement.
-7. Keep all wallet changes in `wallet_transactions`.
-8. Make settlement idempotent.
-9. Use simple UI before adding visual polish.
-10. Ask before adding external sports API integration.
-11. Do not implement complex betting markets until MVP is working.
+1. Use Firebase Auth and Firestore, not Supabase.
+2. Use Firestore transactions for bet placement and settlement.
+3. Do not allow direct client writes for sensitive operations.
+4. Use server-side Firebase Admin SDK for mutations.
+5. Keep the app invite-only.
+6. Keep the app points-only.
+7. Store denormalized fields where useful.
+8. Use deterministic bet IDs to prevent duplicates.
+9. Store odds on each bet at placement time.
+10. Never trust client time, odds, payout, balance, or user ID.
+11. Make settlement idempotent.
+12. Implement the simplest working MVP first.
 
-Start by generating:
+The first working version should support this full flow:
 
-1. Supabase SQL migration files.
-2. Next.js app structure.
-3. Supabase auth helpers.
-4. Protected route handling.
-5. Match list page.
-6. Admin match creation page.
-7. Bet placement route.
-8. Settlement route.
-9. Leaderboard page.
-
-The first working version should let an admin manually create a match, a user place a bet, the admin enter a result, and the app settle the bet correctly.
+```text
+Admin creates match
+User places bet
+Kickoff locks betting
+Admin enters result
+Admin settles match
+Leaderboard updates
+User sees bet result
+```
