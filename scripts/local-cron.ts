@@ -9,6 +9,8 @@ type CronJob = {
 }
 
 const DEFAULT_INTERVAL_MS = 6 * 60 * 60 * 1000
+const DEFAULT_STARTUP_WAIT_MS = 2 * 60 * 1000
+const DEFAULT_STARTUP_RETRY_MS = 1000
 const DEFAULT_JOB = "GET:/api/cron/sync-schedule"
 
 async function main() {
@@ -26,6 +28,8 @@ async function main() {
 
   const baseUrl = trimTrailingSlash(process.env.LOCAL_CRON_BASE_URL ?? "http://localhost:3000")
   const intervalMs = positiveIntegerEnv("LOCAL_CRON_INTERVAL_MS", DEFAULT_INTERVAL_MS)
+  const startupWaitMs = nonNegativeIntegerEnv("LOCAL_CRON_STARTUP_WAIT_MS", DEFAULT_STARTUP_WAIT_MS)
+  const startupRetryMs = positiveIntegerEnv("LOCAL_CRON_STARTUP_RETRY_MS", DEFAULT_STARTUP_RETRY_MS)
   const runOnStart = booleanEnv("LOCAL_CRON_RUN_ON_START", true)
   const jobs = parseJobs(process.env.LOCAL_CRON_JOBS ?? DEFAULT_JOB)
 
@@ -33,7 +37,10 @@ async function main() {
     `Local cron started: ${jobs.map((job) => `${job.method} ${job.path}`).join(", ")} every ${intervalMs}ms at ${baseUrl}`,
   )
 
-  if (runOnStart) await runJobs(baseUrl, cronSecret, jobs)
+  if (runOnStart) {
+    await waitForServer(baseUrl, startupWaitMs, startupRetryMs)
+    await runJobs(baseUrl, cronSecret, jobs)
+  }
 
   for (;;) {
     await sleep(intervalMs)
@@ -43,6 +50,24 @@ async function main() {
 
 async function runJobs(baseUrl: string, cronSecret: string, jobs: CronJob[]) {
   await Promise.all(jobs.map((job) => runJob(baseUrl, cronSecret, job)))
+}
+
+async function waitForServer(baseUrl: string, timeoutMs: number, retryMs: number) {
+  const deadline = Date.now() + timeoutMs
+  let lastError: unknown
+
+  while (Date.now() <= deadline) {
+    try {
+      await fetch(baseUrl, { method: "HEAD" })
+      return
+    } catch (error) {
+      lastError = error
+      if (timeoutMs === 0) break
+      await sleep(Math.min(retryMs, Math.max(deadline - Date.now(), 0)))
+    }
+  }
+
+  console.warn(`Local cron could not confirm ${baseUrl} is ready before startup run.`, lastError)
 }
 
 async function runJob(baseUrl: string, cronSecret: string, job: CronJob) {
@@ -107,6 +132,17 @@ function positiveIntegerEnv(name: string, fallback: number) {
   const parsed = Number(value)
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error(`${name} must be a positive integer.`)
+  }
+  return parsed
+}
+
+function nonNegativeIntegerEnv(name: string, fallback: number) {
+  const value = process.env[name]
+  if (value === undefined || value === "") return fallback
+
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${name} must be a non-negative integer.`)
   }
   return parsed
 }
