@@ -26,11 +26,13 @@ export function canPlaceBet(params: {
   nowMs: number
   kickoffMs: number
   matchStatus: string
+  teamsConfirmed?: boolean
   userBalance: number
   stake: number
   existingBet: boolean
 }) {
   if (params.existingBet) return { ok: false, reason: "You already placed a bet on this match" }
+  if (params.teamsConfirmed === false) return { ok: false, reason: "Teams are not confirmed for this match" }
   if (params.nowMs >= params.kickoffMs) return { ok: false, reason: "Betting is locked for this match" }
   if (!["SCHEDULED", "OPEN"].includes(params.matchStatus)) {
     return { ok: false, reason: "This match is not open for betting" }
@@ -67,6 +69,7 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
       nowMs,
       kickoffMs,
       matchStatus: match.status,
+      teamsConfirmed: match.teamsConfirmed,
       userBalance: userDoc.balance,
       stake: input.stake,
       existingBet: existingBet.exists,

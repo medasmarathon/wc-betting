@@ -21,7 +21,7 @@ export const matchInputSchema = z.object({
   awayTeamCode: z.string().trim().optional(),
   groupName: z.string().trim().optional(),
   stage: z
-    .enum(["GROUP", "ROUND_OF_32", "ROUND_OF_16", "QUARTER_FINAL", "SEMI_FINAL", "FINAL"])
+    .enum(["GROUP", "ROUND_OF_32", "ROUND_OF_16", "QUARTER_FINAL", "SEMI_FINAL", "THIRD_PLACE", "FINAL"])
     .default("GROUP"),
   kickoffAt: z.coerce.date(),
   status: z

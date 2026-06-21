@@ -33,6 +33,7 @@ export async function GET(request: Request) {
             ? serializeDoc(betsByMatch.get(doc.id)!.id, betsByMatch.get(doc.id)!.data())
             : null,
           isBettable:
+            data.teamsConfirmed !== false &&
             ["SCHEDULED", "OPEN"].includes(data.status) &&
             (data.kickoffAt.toMillis?.() ?? 0) > now &&
             !betsByMatch.has(doc.id),

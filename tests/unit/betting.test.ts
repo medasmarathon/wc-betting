@@ -50,4 +50,8 @@ describe("canPlaceBet", () => {
   it("blocks non-open match statuses", () => {
     expect(canPlaceBet({ ...base, matchStatus: "LOCKED" }).reason).toMatch(/not open/i)
   })
+
+  it("blocks matches whose teams are not confirmed", () => {
+    expect(canPlaceBet({ ...base, teamsConfirmed: false }).reason).toMatch(/not confirmed/i)
+  })
 })

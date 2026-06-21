@@ -5,6 +5,7 @@ export type MatchStage =
   | "ROUND_OF_16"
   | "QUARTER_FINAL"
   | "SEMI_FINAL"
+  | "THIRD_PLACE"
   | "FINAL"
 export type MatchStatus =
   | "SCHEDULED"
@@ -47,6 +48,12 @@ export type InviteDoc = {
 
 export type MatchDoc = {
   externalId?: string
+  source?: "espn" | "thestatsapi" | "manual"
+  sourceUpdatedAt?: FirebaseDate
+  matchNumber?: number
+  venueName?: string
+  hostCity?: string
+  teamsConfirmed?: boolean
   homeTeam: string
   awayTeam: string
   homeTeamCode?: string

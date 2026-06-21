@@ -95,7 +95,7 @@ function AdminMatchesContent() {
           <input className="field" placeholder="Away team" value={form.awayTeam} onChange={(event) => setForm({ ...form, awayTeam: event.target.value })} />
           <input className="field" placeholder="Group" value={form.groupName} onChange={(event) => setForm({ ...form, groupName: event.target.value })} />
           <select className="field" value={form.stage} onChange={(event) => setForm({ ...form, stage: event.target.value })}>
-            {["GROUP", "ROUND_OF_32", "ROUND_OF_16", "QUARTER_FINAL", "SEMI_FINAL", "FINAL"].map((stage) => (
+            {["GROUP", "ROUND_OF_32", "ROUND_OF_16", "QUARTER_FINAL", "SEMI_FINAL", "THIRD_PLACE", "FINAL"].map((stage) => (
               <option key={stage}>{stage}</option>
             ))}
           </select>

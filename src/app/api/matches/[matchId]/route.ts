@@ -30,6 +30,7 @@ export async function GET(request: Request, context: RouteContext) {
         ...serializeDoc(matchSnap.id, match),
         userBet: userBet ? serializeDoc(betSnap.id, userBet) : null,
         isBettable:
+          match.teamsConfirmed !== false &&
           ["SCHEDULED", "OPEN"].includes(match.status) &&
           (match.kickoffAt.toMillis?.() ?? 0) > now &&
           !userBet,
