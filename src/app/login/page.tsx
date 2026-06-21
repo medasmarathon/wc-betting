@@ -22,6 +22,20 @@ export default function LoginPage() {
     setMessage(null)
     try {
       await loginWithEmail(email, password)
+      router.replace("/matches")
+    } catch (caught) {
+      setMessage(caught instanceof Error ? caught.message : "Sign in failed")
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function signInWithGoogle() {
+    setPending(true)
+    setMessage(null)
+    try {
+      await loginWithGoogle()
+      router.replace("/matches")
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : "Sign in failed")
     } finally {
@@ -49,7 +63,7 @@ export default function LoginPage() {
             Sign in
           </button>
         </form>
-        <button className="button secondary" onClick={loginWithGoogle}>
+        <button className="button secondary" onClick={signInWithGoogle} disabled={pending}>
           Continue with Google
         </button>
         {message || error ? <p className="text-sm text-red-700">{message ?? error}</p> : null}
