@@ -2,17 +2,17 @@
 
 import { useState } from "react"
 import { useAuth } from "@/components/auth-provider"
+import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
 
 type BetFormProps = {
   matchId: string
-  odds: { HOME: number; DRAW: number; AWAY: number }
   onPlaced: () => void
 }
 
-export function BetForm({ matchId, odds, onPlaced }: BetFormProps) {
+export function BetForm({ matchId, onPlaced }: BetFormProps) {
   const { apiFetch } = useAuth()
   const [pick, setPick] = useState<"HOME" | "DRAW" | "AWAY">("HOME")
-  const [stake, setStake] = useState(50)
+  const [stake, setStake] = useState(DEFAULT_BET_STAKE)
   const [predictedHomeScore, setPredictedHomeScore] = useState("")
   const [predictedAwayScore, setPredictedAwayScore] = useState("")
   const [message, setMessage] = useState<string | null>(null)
@@ -52,7 +52,7 @@ export function BetForm({ matchId, odds, onPlaced }: BetFormProps) {
             className={`button ${pick === option ? "" : "secondary"}`}
             onClick={() => setPick(option)}
           >
-            {option} {odds[option].toFixed(2)}
+            {option}
           </button>
         ))}
       </div>
@@ -60,6 +60,9 @@ export function BetForm({ matchId, odds, onPlaced }: BetFormProps) {
         Stake
         <input className="field" type="number" min={1} value={stake} onChange={(event) => setStake(Number(event.target.value))} />
       </label>
+      <p className="text-sm text-stone-600">
+        If your pick is correct, your stake is refunded. If not, it goes into the party fund.
+      </p>
       <div className="grid grid-cols-2 gap-2">
         <label className="grid gap-1 text-sm font-bold">
           Home score

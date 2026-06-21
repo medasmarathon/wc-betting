@@ -93,6 +93,7 @@ export type BetDoc = {
   stake: number
   odds: number
   potentialPayout: number
+  fundContribution: number
   predictedHomeScore?: number
   predictedAwayScore?: number
   status: BetStatus

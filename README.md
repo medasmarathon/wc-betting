@@ -131,8 +131,9 @@ Before deploying, manually verify the local flow:
 5. User can place one valid pre-kickoff bet.
 6. Duplicate, over-balance, and after-kickoff bets are blocked.
 7. Admin can enter a result and settle the match.
-8. User balance, bet history, wallet transactions, audit logs, and leaderboard update.
-9. Running settlement twice does not duplicate payout.
+8. Winning bets refund the stake, losing bets contribute the stake to the party fund.
+9. User balance, bet history, wallet transactions, audit logs, party fund total, and leaderboard update.
+10. Running settlement twice does not duplicate refunds.
 
 ## Production Firebase Setup
 
@@ -252,7 +253,7 @@ After deployment:
 6. Sign in as an invited regular user.
 7. Place a small points bet.
 8. Enter result as admin and settle.
-9. Confirm leaderboard and bet history update.
+9. Confirm leaderboard, party fund total, and bet history update.
 
 ## Useful Scripts
 
@@ -277,5 +278,6 @@ npm run test:integration # Run integration tests through emulators
 - Users must not directly write bets, balances, wallet transactions, match results, settlement status, or audit logs.
 - Bet placement and settlement run in Firestore transactions.
 - Bets use deterministic IDs: `{matchId}_{userId}`.
-- Odds are copied onto each bet at placement time.
+- Odds may be stored for match compatibility, but user-facing settlement refunds only the staked points on wins.
+- Lost stakes remain deducted and count toward the shared party fund.
 - Settlement is idempotent and only processes pending bets.

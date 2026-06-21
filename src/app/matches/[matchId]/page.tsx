@@ -24,9 +24,9 @@ type MatchDetail = {
   userBet?: {
     pick: string
     stake: number
-    odds: number
     potentialPayout: number
     payout: number
+    fundContribution?: number
     status: string
   } | null
 }
@@ -105,26 +105,21 @@ function MatchDetailContent() {
             {match.homeScore} - {match.awayScore}
           </div>
         ) : null}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="panel p-3 text-center font-bold">HOME {match.odds.HOME.toFixed(2)}</div>
-          <div className="panel p-3 text-center font-bold">DRAW {match.odds.DRAW.toFixed(2)}</div>
-          <div className="panel p-3 text-center font-bold">AWAY {match.odds.AWAY.toFixed(2)}</div>
-        </div>
       </section>
       <aside className="panel h-fit p-5">
         {match.userBet ? (
           <div className="grid gap-2">
             <h2 className="text-xl font-black">Your bet</h2>
             <p>
-              <b>{match.userBet.pick}</b> for <b>{match.userBet.stake}</b> points at{" "}
-              <b>{match.userBet.odds.toFixed(2)}</b>
+              <b>{match.userBet.pick}</b> for <b>{match.userBet.stake}</b> points
             </p>
             <p>Status: {match.userBet.status}</p>
-            <p>Potential payout: {match.userBet.potentialPayout}</p>
-            <p>Actual payout: {match.userBet.payout}</p>
+            <p>Refund if correct: {match.userBet.potentialPayout}</p>
+            <p>Actual refund: {match.userBet.payout}</p>
+            <p>Party fund contribution: {match.userBet.fundContribution ?? 0}</p>
           </div>
         ) : match.isBettable ? (
-          <BetForm matchId={match.id} odds={match.odds} onPlaced={load} />
+          <BetForm matchId={match.id} onPlaced={load} />
         ) : (
           <p className="text-sm text-stone-600">Betting is closed for this match.</p>
         )}

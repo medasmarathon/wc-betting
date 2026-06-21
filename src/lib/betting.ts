@@ -26,8 +26,12 @@ export function calculateFinalResultPick(params: {
   return params.winner ?? calculateResultPick(params.homeScore, params.awayScore)
 }
 
-export function calculatePayout(stake: number, odds: number) {
-  return Math.round(stake * odds)
+export function calculatePayout(stake: number) {
+  return stake
+}
+
+export function calculateFundContribution(stake: number, won: boolean) {
+  return won ? 0 : stake
 }
 
 export function canMatchAcceptNewBet(params: {
@@ -109,7 +113,7 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
     if (!userDoc.isActive) throw new HttpError(403, "User is inactive")
 
     const odds = match.odds[input.pick]
-    const potentialPayout = calculatePayout(input.stake, odds)
+    const potentialPayout = calculatePayout(input.stake)
     const newBalance = userDoc.balance - input.stake
     const matchLabel = `${match.homeTeam} vs ${match.awayTeam}`
 
@@ -126,6 +130,7 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
       stake: input.stake,
       odds,
       potentialPayout,
+      fundContribution: 0,
       ...(input.predictedHomeScore === undefined
         ? {}
         : { predictedHomeScore: input.predictedHomeScore }),
@@ -259,7 +264,8 @@ export async function settleMatch(matchId: string, admin: AuthedUser, db: Firest
 
       const bettor = userSnap.data() as UserDoc
       const won = bet.pick === resultPick
-      const payout = won ? calculatePayout(bet.stake, bet.odds) : 0
+      const payout = won ? calculatePayout(bet.stake) : 0
+      const fundContribution = calculateFundContribution(bet.stake, won)
       const newBalance = bettor.balance + payout
       const userRef = db.collection("users").doc(bet.userId)
       const leaderboardRef = db.collection("leaderboard").doc(bet.userId)
@@ -267,6 +273,7 @@ export async function settleMatch(matchId: string, admin: AuthedUser, db: Firest
       tx.update(betSnap.ref, {
         status: won ? "WON" : "LOST",
         payout,
+        fundContribution,
         settledAt: FieldValue.serverTimestamp(),
       })
 
@@ -388,6 +395,7 @@ export async function voidMatch(matchId: string, admin: AuthedUser) {
       tx.update(betSnap.ref, {
         status: "VOIDED",
         payout: bet.stake,
+        fundContribution: 0,
         settledAt: FieldValue.serverTimestamp(),
       })
       tx.update(db.collection("users").doc(bet.userId), {

@@ -33,11 +33,6 @@ export function MatchCard({ match }: MatchCardProps) {
         </div>
         <StatusBadge status={match.status} />
       </div>
-      <div className="grid grid-cols-3 gap-2 text-center text-sm">
-        <div className="rounded-md border border-[var(--line)] p-2">HOME {match.odds.HOME.toFixed(2)}</div>
-        <div className="rounded-md border border-[var(--line)] p-2">DRAW {match.odds.DRAW.toFixed(2)}</div>
-        <div className="rounded-md border border-[var(--line)] p-2">AWAY {match.odds.AWAY.toFixed(2)}</div>
-      </div>
       {match.userBet ? (
         <div className="rounded-md bg-stone-100 p-3 text-sm">
           Your bet: <b>{match.userBet.pick}</b> for <b>{match.userBet.stake}</b> points ({match.userBet.status})

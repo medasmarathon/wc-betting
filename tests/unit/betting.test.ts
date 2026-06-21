@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  calculateFundContribution,
   calculateFinalResultPick,
   calculatePayout,
   calculateResultPick,
@@ -7,6 +8,7 @@ import {
   canPlaceBet,
   isMatchBettableForUser,
 } from "@/lib/betting"
+import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
 
 describe("calculateResultPick", () => {
   it("returns HOME when home score is greater", () => {
@@ -33,8 +35,24 @@ describe("calculateFinalResultPick", () => {
 })
 
 describe("calculatePayout", () => {
-  it("multiplies stake by stored odds", () => {
-    expect(calculatePayout(50, 2.5)).toBe(125)
+  it("refunds the original stake independent of stored odds", () => {
+    expect(calculatePayout(50)).toBe(50)
+  })
+})
+
+describe("calculateFundContribution", () => {
+  it("keeps won stakes out of the party fund", () => {
+    expect(calculateFundContribution(10, true)).toBe(0)
+  })
+
+  it("contributes lost stakes to the party fund", () => {
+    expect(calculateFundContribution(10, false)).toBe(10)
+  })
+})
+
+describe("DEFAULT_BET_STAKE", () => {
+  it("defaults new bet slips to 10 points", () => {
+    expect(DEFAULT_BET_STAKE).toBe(10)
   })
 })
 
