@@ -46,6 +46,12 @@ CRON_SECRET=local-cron-secret
 ADMIN_EMAILS=admin@example.com
 SCHEDULE_SYNC_SOURCE=espn
 SCHEDULE_SYNC_FALLBACK=thestatsapi
+
+LOCAL_CRON_ENABLED=true
+LOCAL_CRON_BASE_URL=http://localhost:3000
+LOCAL_CRON_INTERVAL_MS=300000
+LOCAL_CRON_RUN_ON_START=true
+LOCAL_CRON_JOBS=GET:/api/cron/sync-schedule
 ```
 
 3. Start Firebase emulators in one terminal:
@@ -97,6 +103,12 @@ You can also run app and emulators together:
 
 ```bash
 npm run dev:emulated
+```
+
+To run the local cron scheduler as well:
+
+```bash
+npm run dev:emulated:cron
 ```
 
 ## Local Testing
@@ -222,6 +234,8 @@ GET /api/cron/sync-schedule
 ```
 
 The endpoint accepts Vercel Cron's `Authorization: Bearer ${CRON_SECRET}` header and the local/manual `x-cron-secret` header. `vercel.json` runs it every 6 hours.
+
+For local development, `npm run cron:local` calls the configured `LOCAL_CRON_JOBS` on `LOCAL_CRON_INTERVAL_MS`. It reads `.env.local`, uses `LOCAL_CRON_BASE_URL`, and refuses to run without emulator environment variables unless `LOCAL_CRON_ALLOW_NON_EMULATOR=true` is set.
 
 Sync behavior:
 

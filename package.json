@@ -16,7 +16,9 @@
     "emulators": "firebase emulators:start --import=.firebase-emulator-data --export-on-exit=.firebase-emulator-data",
     "emulators:fresh": "firebase emulators:start",
     "seed": "tsx scripts/seed-local.ts",
-    "dev:emulated": "concurrently \"npm run emulators\" \"npm run dev\""
+    "cron:local": "tsx scripts/local-cron.ts",
+    "dev:emulated": "concurrently \"npm run emulators\" \"npm run dev\"",
+    "dev:emulated:cron": "concurrently \"npm run emulators\" \"npm run dev\" \"npm run cron:local\""
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -61,6 +61,14 @@ FIREBASE_AUTH_EMULATOR_HOST=
 
 CRON_SECRET=
 ADMIN_EMAILS=
+SCHEDULE_SYNC_SOURCE=espn
+SCHEDULE_SYNC_FALLBACK=thestatsapi
+
+LOCAL_CRON_ENABLED=false
+LOCAL_CRON_BASE_URL=http://localhost:3000
+LOCAL_CRON_INTERVAL_MS=21600000
+LOCAL_CRON_RUN_ON_START=true
+LOCAL_CRON_JOBS=GET:/api/cron/sync-schedule
 ```
 
 ### `.env.local`
@@ -83,6 +91,14 @@ FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
 
 CRON_SECRET=local-cron-secret
 ADMIN_EMAILS=admin@example.com
+SCHEDULE_SYNC_SOURCE=espn
+SCHEDULE_SYNC_FALLBACK=thestatsapi
+
+LOCAL_CRON_ENABLED=true
+LOCAL_CRON_BASE_URL=http://localhost:3000
+LOCAL_CRON_INTERVAL_MS=300000
+LOCAL_CRON_RUN_ON_START=true
+LOCAL_CRON_JOBS=GET:/api/cron/sync-schedule
 ```
 
 ### `.env.test`
@@ -323,8 +339,10 @@ Add scripts:
     "emulators": "firebase emulators:start --import=.firebase-emulator-data --export-on-exit=.firebase-emulator-data",
     "emulators:fresh": "firebase emulators:start",
     "seed": "tsx scripts/seed-local.ts",
+    "cron:local": "tsx scripts/local-cron.ts",
     "dev": "next dev",
-    "dev:emulated": "concurrently \"npm run emulators\" \"npm run dev\""
+    "dev:emulated": "concurrently \"npm run emulators\" \"npm run dev\"",
+    "dev:emulated:cron": "concurrently \"npm run emulators\" \"npm run dev\" \"npm run cron:local\""
   }
 }
 ```
@@ -335,6 +353,7 @@ Behavior:
 * `npm run emulators:fresh` starts empty emulators.
 * `npm run seed` inserts local test users, invites, matches, balances, and leaderboard docs.
 * `npm run dev:emulated` runs the app and emulators together.
+* `npm run dev:emulated:cron` also runs the configurable local cron scheduler.
 
 ---
 
