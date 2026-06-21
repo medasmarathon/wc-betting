@@ -65,7 +65,10 @@ export type MatchDoc = {
   odds: Odds
   homeScore?: number
   awayScore?: number
+  homeShootoutScore?: number
+  awayShootoutScore?: number
   resultPick?: BetPick
+  resultSourceDetail?: string
   betCount: number
   totalStaked: number
   lockedAt?: FirebaseDate

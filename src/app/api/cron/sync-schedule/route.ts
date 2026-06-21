@@ -1,3 +1,4 @@
+import { settleCompletedMatches } from "@/lib/betting"
 import { lockExpiredOpenMatches, syncWorldCupSchedule } from "@/lib/schedule-sync"
 
 export async function GET(request: Request) {
@@ -11,6 +12,7 @@ export async function GET(request: Request) {
 
   const sync = await syncWorldCupSchedule()
   const locked = await lockExpiredOpenMatches()
+  const settlement = await settleCompletedMatches()
 
-  return Response.json({ ...sync, locked })
+  return Response.json({ sync, locked, settlement })
 }

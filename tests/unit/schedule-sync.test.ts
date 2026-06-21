@@ -93,6 +93,82 @@ describe("normalizeWorldCupFixture", () => {
     expect(fixture.status).toBe("COMPLETED")
     expect(fixture.homeScore).toBe(2)
     expect(fixture.awayScore).toBe(1)
+    expect(fixture.resultPick).toBe("HOME")
+  })
+
+  it("normalizes ESPN completed draws as final draws when no winner is provided", () => {
+    const fixture = normalizeWorldCupFixture(
+      "espn",
+      {
+        id: "760501",
+        date: "2026-06-20T19:00Z",
+        season: { slug: "group-stage" },
+        competitions: [
+          {
+            status: { type: { state: "post", completed: true, shortDetail: "FT" } },
+            competitors: [
+              { homeAway: "home", score: "1", team: { displayName: "Brazil" } },
+              { homeAway: "away", score: "1", team: { displayName: "Morocco" } },
+            ],
+          },
+        ],
+      },
+      36,
+      now,
+    )
+
+    expect(fixture.status).toBe("COMPLETED")
+    expect(fixture.resultPick).toBe("DRAW")
+    expect(fixture.resultSourceDetail).toBe("FT")
+  })
+
+  it("normalizes ESPN penalty finals to the official winner instead of a draw", () => {
+    const fixture = normalizeWorldCupFixture(
+      "espn",
+      {
+        id: "633850",
+        date: "2026-07-19T19:00Z",
+        season: { slug: "final" },
+        competitions: [
+          {
+            status: {
+              type: {
+                state: "post",
+                completed: true,
+                name: "STATUS_FINAL_PEN",
+                shortDetail: "FT-Pens",
+              },
+            },
+            competitors: [
+              {
+                homeAway: "home",
+                score: "3",
+                winner: true,
+                shootoutScore: 4,
+                team: { displayName: "Argentina" },
+              },
+              {
+                homeAway: "away",
+                score: "3",
+                winner: false,
+                shootoutScore: 2,
+                team: { displayName: "France" },
+              },
+            ],
+          },
+        ],
+      },
+      104,
+      now,
+    )
+
+    expect(fixture.status).toBe("COMPLETED")
+    expect(fixture.homeScore).toBe(3)
+    expect(fixture.awayScore).toBe(3)
+    expect(fixture.homeShootoutScore).toBe(4)
+    expect(fixture.awayShootoutScore).toBe(2)
+    expect(fixture.resultPick).toBe("HOME")
+    expect(fixture.resultSourceDetail).toBe("FT-Pens")
   })
 
   it("normalizes fallback knockout placeholders as unconfirmed", () => {
@@ -183,5 +259,17 @@ describe("buildMatchSyncDecision", () => {
     expect(decision.operation).toBe("update")
     if (decision.operation !== "update") throw new Error("Expected update decision")
     expect(decision.data.homeTeam).toBeUndefined()
+  })
+
+  it("does not mark a completed source fixture completed without scores", () => {
+    const decision = buildMatchSyncDecision(
+      { ...fixture, status: "COMPLETED", homeScore: undefined, awayScore: undefined },
+      { status: "LOCKED", kickoffAt: { toMillis: () => Date.parse("2026-06-11T19:00:00Z") } },
+      Date.parse("2026-06-12T00:00:00Z"),
+    )
+
+    expect(decision.operation).toBe("update")
+    if (decision.operation !== "update") throw new Error("Expected update decision")
+    expect(decision.data.status).toBeUndefined()
   })
 })

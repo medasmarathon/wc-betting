@@ -181,13 +181,13 @@ For MVP, each user may place one bet per match.
 Market:
 
 ```text
-Regular-time match result:
+Official final match result:
 - HOME
 - DRAW
 - AWAY
 ```
 
-For knockout games, still settle by regular-time result unless admin changes the rules later.
+For knockout games, settle by the official final result, including extra time or penalties when applicable. `DRAW` only wins when the official final result is a draw.
 
 ### Bet Locking
 
@@ -827,10 +827,10 @@ async function settleMatch(matchId, adminUserId) {
     if match.status == SETTLED:
       return
 
-    if scores missing:
+    if result missing:
       throw
 
-    resultPick = calculateResultPick(match.homeScore, match.awayScore)
+    resultPick = match.resultPick ?? calculateFinalResultPick(match.homeScore, match.awayScore)
 
     pendingBets = query bets where matchId == matchId and status == PENDING
 

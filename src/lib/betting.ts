@@ -1,4 +1,4 @@
-import { FieldValue, Timestamp } from "firebase-admin/firestore"
+import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 import { getAdminDb } from "@/lib/firebase/admin"
 import type { AuthedUser } from "@/lib/auth"
 import { HttpError } from "@/lib/auth"
@@ -16,6 +16,14 @@ export function calculateResultPick(homeScore: number, awayScore: number): BetPi
   if (homeScore > awayScore) return "HOME"
   if (homeScore < awayScore) return "AWAY"
   return "DRAW"
+}
+
+export function calculateFinalResultPick(params: {
+  homeScore: number
+  awayScore: number
+  winner?: Extract<BetPick, "HOME" | "AWAY">
+}): BetPick {
+  return params.winner ?? calculateResultPick(params.homeScore, params.awayScore)
 }
 
 export function calculatePayout(stake: number, odds: number) {
@@ -175,19 +183,24 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
   return { betId }
 }
 
-export async function enterResult(matchId: string, admin: AuthedUser, scores: { homeScore: number; awayScore: number }) {
+export async function enterResult(
+  matchId: string,
+  admin: AuthedUser,
+  scores: { homeScore: number; awayScore: number; resultPick?: BetPick },
+) {
   const db = getAdminDb()
   const matchRef = db.collection("matches").doc(matchId)
   await db.runTransaction(async (tx) => {
     const matchSnap = await tx.get(matchRef)
     if (!matchSnap.exists) throw new HttpError(404, "Match not found")
     const before = matchSnap.data()
-    const resultPick = calculateResultPick(scores.homeScore, scores.awayScore)
+    const resultPick = scores.resultPick ?? calculateFinalResultPick(scores)
 
     tx.update(matchRef, {
       homeScore: scores.homeScore,
       awayScore: scores.awayScore,
       resultPick,
+      resultSourceDetail: "manual",
       status: "COMPLETED",
       completedAt: FieldValue.serverTimestamp(),
       updatedBy: admin.uid,
@@ -206,8 +219,7 @@ export async function enterResult(matchId: string, admin: AuthedUser, scores: { 
   })
 }
 
-export async function settleMatch(matchId: string, admin: AuthedUser) {
-  const db = getAdminDb()
+export async function settleMatch(matchId: string, admin: AuthedUser, db: Firestore = getAdminDb()) {
   const matchRef = db.collection("matches").doc(matchId)
 
   await db.runTransaction(async (tx) => {
@@ -216,11 +228,16 @@ export async function settleMatch(matchId: string, admin: AuthedUser) {
 
     const match = matchSnap.data() as MatchDoc
     if (match.status === "SETTLED") return
-    if (match.homeScore === undefined || match.awayScore === undefined) {
-      throw new HttpError(400, "Match scores are required before settlement")
+    if (!match.resultPick && (match.homeScore === undefined || match.awayScore === undefined)) {
+      throw new HttpError(400, "Match result is required before settlement")
     }
 
-    const resultPick = calculateResultPick(match.homeScore, match.awayScore)
+    const resultPick =
+      match.resultPick ??
+      calculateFinalResultPick({
+        homeScore: match.homeScore!,
+        awayScore: match.awayScore!,
+      })
     const pendingQuery = db
       .collection("bets")
       .where("matchId", "==", matchId)
@@ -302,6 +319,39 @@ export async function settleMatch(matchId: string, admin: AuthedUser) {
       createdAt: FieldValue.serverTimestamp(),
     })
   })
+}
+
+export async function settleCompletedMatches(db: Firestore = getAdminDb()) {
+  const systemActor: AuthedUser = {
+    uid: "schedule-sync",
+    email: "system",
+    displayName: "Schedule Sync",
+    role: "ADMIN",
+    isActive: true,
+  }
+  const result = { settled: 0, skipped: 0, failed: 0 }
+  const snap = await db.collection("matches").where("status", "==", "COMPLETED").get()
+
+  for (const doc of snap.docs) {
+    const match = doc.data() as MatchDoc
+    const hasResult = Boolean(
+      match.resultPick || (match.homeScore !== undefined && match.awayScore !== undefined),
+    )
+
+    if (!hasResult) {
+      result.skipped += 1
+      continue
+    }
+
+    try {
+      await settleMatch(doc.id, systemActor, db)
+      result.settled += 1
+    } catch {
+      result.failed += 1
+    }
+  }
+
+  return result
 }
 
 export async function voidMatch(matchId: string, admin: AuthedUser) {

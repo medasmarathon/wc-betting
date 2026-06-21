@@ -16,6 +16,7 @@ type Match = {
   odds: { HOME: number; DRAW: number; AWAY: number }
   homeScore?: number
   awayScore?: number
+  resultPick?: "HOME" | "DRAW" | "AWAY"
 }
 
 export default function AdminMatchesPage() {
@@ -127,6 +128,7 @@ function AdminMatchRow({
 }) {
   const [homeScore, setHomeScore] = useState(match.homeScore?.toString() ?? "")
   const [awayScore, setAwayScore] = useState(match.awayScore?.toString() ?? "")
+  const [resultPick, setResultPick] = useState(match.resultPick ?? "")
 
   return (
     <article className="panel grid gap-3 p-4">
@@ -141,14 +143,20 @@ function AdminMatchRow({
         </div>
         <StatusBadge status={match.status} />
       </div>
-      <div className="grid gap-2 md:grid-cols-[100px_100px_auto]">
+      <div className="grid gap-2 md:grid-cols-[100px_100px_140px_auto]">
         <input className="field" type="number" min={0} placeholder="Home" value={homeScore} onChange={(event) => setHomeScore(event.target.value)} />
         <input className="field" type="number" min={0} placeholder="Away" value={awayScore} onChange={(event) => setAwayScore(event.target.value)} />
+        <select className="field" value={resultPick} onChange={(event) => setResultPick(event.target.value)}>
+          <option value="">Auto result</option>
+          <option value="HOME">Home wins</option>
+          <option value="DRAW">Draw</option>
+          <option value="AWAY">Away wins</option>
+        </select>
         <div className="flex flex-wrap gap-2">
           <button className="button secondary" onClick={() => action(`/api/admin/matches/${match.id}/lock`)}>
             Lock
           </button>
-          <button className="button" onClick={() => action(`/api/admin/matches/${match.id}/result`, { homeScore: Number(homeScore), awayScore: Number(awayScore) })}>
+          <button className="button" onClick={() => action(`/api/admin/matches/${match.id}/result`, { homeScore: Number(homeScore), awayScore: Number(awayScore), resultPick: resultPick || undefined })}>
             Enter result
           </button>
           <button className="button" onClick={() => action(`/api/admin/matches/${match.id}/settle`)}>

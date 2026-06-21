@@ -33,6 +33,7 @@ export const matchInputSchema = z.object({
 export const resultInputSchema = z.object({
   homeScore: z.coerce.number().int().min(0).max(99),
   awayScore: z.coerce.number().int().min(0).max(99),
+  resultPick: z.enum(["HOME", "DRAW", "AWAY"]).optional(),
 })
 
 export const adjustBalanceSchema = z.object({

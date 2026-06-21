@@ -1,6 +1,6 @@
 import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 import { getAdminDb } from "@/lib/firebase/admin"
-import type { MatchDoc, MatchStage, MatchStatus } from "@/types/betting"
+import type { BetPick, MatchDoc, MatchStage, MatchStatus } from "@/types/betting"
 
 const ESPN_SCOREBOARD_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719&limit=200"
@@ -27,6 +27,10 @@ export type NormalizedWorldCupFixture = {
   status: MatchStatus
   homeScore?: number
   awayScore?: number
+  homeShootoutScore?: number
+  awayShootoutScore?: number
+  resultPick?: BetPick
+  resultSourceDetail?: string
   venueName?: string
   hostCity?: string
   teamsConfirmed: boolean
@@ -66,6 +70,8 @@ type EspnCompetition = {
 type EspnCompetitor = {
   homeAway?: "home" | "away"
   score?: string
+  winner?: boolean
+  shootoutScore?: number | string
   team?: {
     abbreviation?: string
     displayName?: string
@@ -79,6 +85,8 @@ type EspnStatus = {
     state?: string
     name?: string
     completed?: boolean
+    detail?: string
+    shortDetail?: string
   }
 }
 
@@ -194,11 +202,15 @@ export function buildMatchSyncDecision(
       kickoffAt: fixture.kickoffAt,
       status: fixture.status,
     })
-  } else if (RESULT_SOURCE_STATUSES.has(fixture.status)) {
+  } else if (fixture.status === "LIVE" || (fixture.status === "COMPLETED" && hasScores(fixture))) {
     Object.assign(data, {
       status: fixture.status,
       homeScore: fixture.homeScore,
       awayScore: fixture.awayScore,
+      homeShootoutScore: fixture.homeShootoutScore,
+      awayShootoutScore: fixture.awayShootoutScore,
+      resultPick: fixture.resultPick,
+      resultSourceDetail: fixture.resultSourceDetail,
     })
   }
 
@@ -312,9 +324,11 @@ function normalizeEspnFixture(event: EspnEvent, matchNumber: number, now: Date):
   const homeTeam = teamName(home) ?? "TBD"
   const awayTeam = teamName(away) ?? "TBD"
   const status = mapEspnStatus(competition?.status ?? event.status)
+  const sourceStatus = competition?.status ?? event.status
   const date = event.date ?? competition?.date ?? competition?.startDate
 
   if (!date) throw new Error(`ESPN event ${event.id} is missing kickoff date`)
+  const scores = scoreFields(status, home?.score, away?.score)
 
   return {
     id: `wc2026-match-${matchNumber}`,
@@ -330,7 +344,8 @@ function normalizeEspnFixture(event: EspnEvent, matchNumber: number, now: Date):
     stage: mapWorldCupStage(event.season?.slug, matchNumber),
     kickoffAt: new Date(date),
     status,
-    ...scoreFields(status, home?.score, away?.score),
+    ...scores,
+    ...finalOutcomeFields(status, scores, home, away, sourceStatus),
     venueName: competition?.venue?.fullName ?? event.venue?.displayName,
     hostCity: competition?.venue?.address?.city,
     teamsConfirmed: areTeamsConfirmed(homeTeam, awayTeam),
@@ -389,6 +404,45 @@ function scoreNumber(score?: string) {
   return Number.isFinite(value) ? value : undefined
 }
 
+function finalOutcomeFields(
+  status: MatchStatus,
+  scores: { homeScore?: number; awayScore?: number },
+  home?: EspnCompetitor,
+  away?: EspnCompetitor,
+  sourceStatus?: EspnStatus,
+) {
+  if (status !== "COMPLETED") return {}
+  if (scores.homeScore === undefined || scores.awayScore === undefined) return {}
+
+  const winner = winnerPick(home, away)
+  const resultPick = winner ?? calculateScorePick(scores.homeScore, scores.awayScore)
+
+  return removeUndefined({
+    homeShootoutScore: shootoutNumber(home?.shootoutScore),
+    awayShootoutScore: shootoutNumber(away?.shootoutScore),
+    resultPick,
+    resultSourceDetail: sourceStatus?.type?.shortDetail ?? sourceStatus?.type?.detail ?? sourceStatus?.type?.name,
+  })
+}
+
+function winnerPick(home?: EspnCompetitor, away?: EspnCompetitor): Extract<BetPick, "HOME" | "AWAY"> | undefined {
+  if (home?.winner === true) return "HOME"
+  if (away?.winner === true) return "AWAY"
+  return undefined
+}
+
+function calculateScorePick(homeScore: number, awayScore: number): BetPick {
+  if (homeScore > awayScore) return "HOME"
+  if (homeScore < awayScore) return "AWAY"
+  return "DRAW"
+}
+
+function shootoutNumber(score?: number | string) {
+  if (score === undefined || score === "") return undefined
+  const value = Number(score)
+  return Number.isFinite(value) ? value : undefined
+}
+
 function teamName(competitor?: EspnCompetitor) {
   return (
     competitor?.team?.displayName ??
@@ -429,6 +483,10 @@ function fixtureFields(fixture: NormalizedWorldCupFixture) {
     status: fixture.status,
     homeScore: fixture.homeScore,
     awayScore: fixture.awayScore,
+    homeShootoutScore: fixture.homeShootoutScore,
+    awayShootoutScore: fixture.awayShootoutScore,
+    resultPick: fixture.resultPick,
+    resultSourceDetail: fixture.resultSourceDetail,
   }
 }
 
@@ -451,4 +509,8 @@ function toMillis(value: MatchDoc["kickoffAt"] | Date | undefined) {
   if (typeof value.toMillis === "function") return value.toMillis()
   if (typeof value.seconds === "number") return value.seconds * 1000
   return undefined
+}
+
+function hasScores(fixture: NormalizedWorldCupFixture) {
+  return fixture.homeScore !== undefined && fixture.awayScore !== undefined
 }

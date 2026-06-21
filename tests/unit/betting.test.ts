@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  calculateFinalResultPick,
   calculatePayout,
   calculateResultPick,
   canMatchAcceptNewBet,
@@ -18,6 +19,16 @@ describe("calculateResultPick", () => {
 
   it("returns AWAY when away score is greater", () => {
     expect(calculateResultPick(0, 3)).toBe("AWAY")
+  })
+})
+
+describe("calculateFinalResultPick", () => {
+  it("uses the source winner when a tied final has an official winner", () => {
+    expect(calculateFinalResultPick({ homeScore: 3, awayScore: 3, winner: "HOME" })).toBe("HOME")
+  })
+
+  it("falls back to score comparison when the source does not provide a winner", () => {
+    expect(calculateFinalResultPick({ homeScore: 1, awayScore: 1 })).toBe("DRAW")
   })
 })
 

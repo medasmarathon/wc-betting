@@ -208,7 +208,7 @@ Important:
 - `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` must only be set in Vercel server environment variables.
 - Store `FIREBASE_PRIVATE_KEY` with escaped newlines if needed, using `\n`.
 - `ADMIN_EMAILS` is a comma-separated list, for example `admin@example.com,second-admin@example.com`.
-- `CRON_SECRET` protects the match-locking maintenance endpoint.
+- `CRON_SECRET` protects the schedule, locking, and settlement maintenance endpoint.
 - `SCHEDULE_SYNC_SOURCE` defaults to `espn`.
 - `SCHEDULE_SYNC_FALLBACK` defaults to `thestatsapi`.
 
@@ -220,7 +220,7 @@ The app can import the WC 2026 schedule from free JSON sources using:
 GET /api/cron/sync-schedule
 ```
 
-The endpoint accepts Vercel Cron's `Authorization: Bearer ${CRON_SECRET}` header and the local/manual `x-cron-secret` header. `vercel.json` runs it daily at `03:00 UTC`, which is compatible with Vercel Hobby cron limits.
+The endpoint accepts Vercel Cron's `Authorization: Bearer ${CRON_SECRET}` header and the local/manual `x-cron-secret` header. `vercel.json` runs it every 6 hours.
 
 Sync behavior:
 
@@ -228,7 +228,8 @@ Sync behavior:
 - TheStatsAPI's free fixtures JSON is the fallback source and requires attribution: data fallback provided by TheStatsAPI, https://www.thestatsapi.com.
 - Imported matches use stable IDs like `wc2026-match-1`.
 - Placeholder knockout matches are stored but are not bettable until both teams are confirmed.
-- Sync does not settle bets automatically.
+- Completed matches with an unambiguous final result are settled automatically.
+- Settlement uses the official final outcome, including extra time or penalties when applicable. `DRAW` only wins when the official final result is a draw.
 
 ## Production Verification
 
