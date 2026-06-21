@@ -1,6 +1,7 @@
-import { FieldValue } from "firebase-admin/firestore"
 import { handleRouteError, requireUser } from "@/lib/auth"
+import { isMatchBettableForUser } from "@/lib/betting"
 import { getAdminDb } from "@/lib/firebase/admin"
+import { lockExpiredOpenMatches } from "@/lib/schedule-sync"
 import { serializeDoc } from "@/lib/serialize"
 import type { BetDoc, MatchDoc } from "@/types/betting"
 
@@ -32,11 +33,13 @@ export async function GET(request: Request) {
           userBet: betsByMatch.has(doc.id)
             ? serializeDoc(betsByMatch.get(doc.id)!.id, betsByMatch.get(doc.id)!.data())
             : null,
-          isBettable:
-            data.teamsConfirmed !== false &&
-            ["SCHEDULED", "OPEN"].includes(data.status) &&
-            (data.kickoffAt.toMillis?.() ?? 0) > now &&
-            !betsByMatch.has(doc.id),
+          isBettable: isMatchBettableForUser({
+            nowMs: now,
+            kickoffMs: data.kickoffAt.toMillis?.() ?? 0,
+            matchStatus: data.status,
+            teamsConfirmed: data.teamsConfirmed,
+            hasUserBet: betsByMatch.has(doc.id),
+          }),
         }
       })
 
@@ -44,24 +47,4 @@ export async function GET(request: Request) {
   } catch (error) {
     return handleRouteError(error)
   }
-}
-
-async function lockExpiredOpenMatches() {
-  const db = getAdminDb()
-  const snap = await db
-    .collection("matches")
-    .where("status", "in", ["SCHEDULED", "OPEN"])
-    .where("kickoffAt", "<=", new Date())
-    .get()
-
-  if (snap.empty) return
-  const batch = db.batch()
-  snap.docs.forEach((doc) => {
-    batch.update(doc.ref, {
-      status: "LOCKED",
-      lockedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    })
-  })
-  await batch.commit()
 }

@@ -22,6 +22,31 @@ export function calculatePayout(stake: number, odds: number) {
   return Math.round(stake * odds)
 }
 
+export function canMatchAcceptNewBet(params: {
+  nowMs: number
+  kickoffMs: number
+  matchStatus: string
+  teamsConfirmed?: boolean
+}) {
+  if (params.teamsConfirmed === false) return { ok: false, reason: "Teams are not confirmed for this match" }
+  if (params.nowMs >= params.kickoffMs) return { ok: false, reason: "Betting is locked for this match" }
+  if (!["SCHEDULED", "OPEN"].includes(params.matchStatus)) {
+    return { ok: false, reason: "This match is not open for betting" }
+  }
+  return { ok: true, reason: undefined }
+}
+
+export function isMatchBettableForUser(params: {
+  nowMs: number
+  kickoffMs: number
+  matchStatus: string
+  teamsConfirmed?: boolean
+  hasUserBet: boolean
+}) {
+  if (params.hasUserBet) return false
+  return canMatchAcceptNewBet(params).ok
+}
+
 export function canPlaceBet(params: {
   nowMs: number
   kickoffMs: number
@@ -32,11 +57,8 @@ export function canPlaceBet(params: {
   existingBet: boolean
 }) {
   if (params.existingBet) return { ok: false, reason: "You already placed a bet on this match" }
-  if (params.teamsConfirmed === false) return { ok: false, reason: "Teams are not confirmed for this match" }
-  if (params.nowMs >= params.kickoffMs) return { ok: false, reason: "Betting is locked for this match" }
-  if (!["SCHEDULED", "OPEN"].includes(params.matchStatus)) {
-    return { ok: false, reason: "This match is not open for betting" }
-  }
+  const matchAllowed = canMatchAcceptNewBet(params)
+  if (!matchAllowed.ok) return matchAllowed
   if (params.userBalance < params.stake) return { ok: false, reason: "Insufficient balance" }
   return { ok: true, reason: undefined }
 }

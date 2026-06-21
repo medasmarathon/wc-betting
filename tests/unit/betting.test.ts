@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { calculatePayout, calculateResultPick, canPlaceBet } from "@/lib/betting"
+import {
+  calculatePayout,
+  calculateResultPick,
+  canMatchAcceptNewBet,
+  canPlaceBet,
+  isMatchBettableForUser,
+} from "@/lib/betting"
 
 describe("calculateResultPick", () => {
   it("returns HOME when home score is greater", () => {
@@ -39,6 +45,10 @@ describe("canPlaceBet", () => {
     expect(canPlaceBet({ ...base, nowMs: 2000 }).reason).toMatch(/locked/i)
   })
 
+  it("blocks after kickoff has passed", () => {
+    expect(canPlaceBet({ ...base, nowMs: 2001 }).reason).toMatch(/locked/i)
+  })
+
   it("blocks duplicate bets", () => {
     expect(canPlaceBet({ ...base, existingBet: true }).reason).toMatch(/already/i)
   })
@@ -53,5 +63,46 @@ describe("canPlaceBet", () => {
 
   it("blocks matches whose teams are not confirmed", () => {
     expect(canPlaceBet({ ...base, teamsConfirmed: false }).reason).toMatch(/not confirmed/i)
+  })
+})
+
+describe("canMatchAcceptNewBet", () => {
+  const base = {
+    nowMs: 1000,
+    kickoffMs: 2000,
+    matchStatus: "OPEN",
+  }
+
+  it("allows matches before kickoff", () => {
+    expect(canMatchAcceptNewBet(base).ok).toBe(true)
+  })
+
+  it("blocks matches exactly at kickoff", () => {
+    expect(canMatchAcceptNewBet({ ...base, nowMs: 2000 }).reason).toMatch(/locked/i)
+  })
+
+  it("blocks matches after kickoff", () => {
+    expect(canMatchAcceptNewBet({ ...base, nowMs: 2001 }).reason).toMatch(/locked/i)
+  })
+})
+
+describe("isMatchBettableForUser", () => {
+  const base = {
+    nowMs: 1000,
+    kickoffMs: 2000,
+    matchStatus: "OPEN",
+    hasUserBet: false,
+  }
+
+  it("returns true for a pre-kickoff open match without a user bet", () => {
+    expect(isMatchBettableForUser(base)).toBe(true)
+  })
+
+  it("returns false when the user already has a bet", () => {
+    expect(isMatchBettableForUser({ ...base, hasUserBet: true })).toBe(false)
+  })
+
+  it("returns false at kickoff", () => {
+    expect(isMatchBettableForUser({ ...base, nowMs: 2000 })).toBe(false)
   })
 })

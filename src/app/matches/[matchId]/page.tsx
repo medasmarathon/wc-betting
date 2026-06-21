@@ -7,6 +7,8 @@ import { BetForm } from "@/components/bet-form"
 import { StatusBadge } from "@/components/status-badge"
 import { formatKickoff } from "@/lib/time"
 
+const MAX_TIMEOUT_MS = 2_147_483_647
+
 type MatchDetail = {
   id: string
   homeTeam: string
@@ -48,12 +50,39 @@ function MatchDetailContent() {
       .then(async (response) => {
         const json = await response.json()
         if (!response.ok) throw new Error(json.error)
+        setError(null)
         setMatch(json.match)
       })
       .catch((caught) => setError(caught instanceof Error ? caught.message : "Unable to load match"))
   }, [apiFetch, matchId])
 
   useEffect(() => load(), [load])
+
+  useEffect(() => {
+    if (!match?.isBettable) return
+
+    const kickoffMs = new Date(match.kickoffAt).getTime()
+    if (!Number.isFinite(kickoffMs)) return
+
+    const closeBettingLocally = () => {
+      setMatch((current) => {
+        if (!current || current.id !== match.id) return current
+        return {
+          ...current,
+          isBettable: false,
+          status: ["SCHEDULED", "OPEN"].includes(current.status) ? "LOCKED" : current.status,
+        }
+      })
+    }
+
+    const delayMs = kickoffMs - Date.now()
+    const timeoutId = window.setTimeout(() => {
+      if (delayMs <= MAX_TIMEOUT_MS) closeBettingLocally()
+      load()
+    }, Math.max(0, Math.min(delayMs, MAX_TIMEOUT_MS)))
+
+    return () => window.clearTimeout(timeoutId)
+  }, [load, match?.id, match?.isBettable, match?.kickoffAt])
 
   if (!match) return <main className="page">{error ?? "Loading..."}</main>
 
