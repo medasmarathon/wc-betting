@@ -95,7 +95,7 @@ Rules:
 * Firebase Admin credentials must only be used server-side.
 * Never expose `FIREBASE_PRIVATE_KEY` to client code.
 * `ADMIN_EMAILS` is a comma-separated list of admin emails.
-* `CRON_SECRET` protects cron/admin maintenance endpoints.
+* `CRON_SECRET` protects admin maintenance endpoints and lets scheduled jobs bypass the manual admin schedule sync rate limit.
 
 ---
 

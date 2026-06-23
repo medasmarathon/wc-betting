@@ -1,13 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { StatusBadge } from "@/components/status-badge"
 
 type Match = { id: string; homeTeam: string; awayTeam: string; status: string }
 type User = { id: string; displayName: string; balance: number; role: string; isActive: boolean }
 type AuditLog = { id: string; action: string; entityType: string; actorEmail?: string }
+type ScheduleSyncResponse = {
+  sync?: { source?: string; created?: number; updated?: number; skipped?: number; failed?: number }
+  locked?: number
+  settlement?: { settled?: number; skipped?: number; failed?: number }
+}
+type ScheduleSyncError = { error?: string; retryAfterSeconds?: number; nextAllowedAt?: string }
 
 export default function AdminPage() {
   return (
@@ -22,8 +28,10 @@ function AdminContent() {
   const [matches, setMatches] = useState<Match[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [logs, setLogs] = useState<AuditLog[]>([])
+  const [scheduleSyncPending, setScheduleSyncPending] = useState(false)
+  const [scheduleSyncMessage, setScheduleSyncMessage] = useState<string | null>(null)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     Promise.all([
       apiFetch("/api/matches?view=all").then((response) => response.json()),
       apiFetch("/api/admin/users").then((response) => response.json()),
@@ -35,11 +43,37 @@ function AdminContent() {
     })
   }, [apiFetch])
 
+  useEffect(() => {
+    load()
+  }, [load])
+
+  async function triggerScheduleSync() {
+    setScheduleSyncPending(true)
+
+    try {
+      const response = await apiFetch("/api/cron/sync-schedule")
+      const json = (await response.json().catch(() => ({}))) as ScheduleSyncResponse & ScheduleSyncError
+
+      if (!response.ok) {
+        setScheduleSyncMessage(formatScheduleSyncError(json))
+        return
+      }
+
+      setScheduleSyncMessage(formatScheduleSyncSuccess(json))
+      load()
+    } finally {
+      setScheduleSyncPending(false)
+    }
+  }
+
   return (
     <main className="page grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-black">Admin</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button className="button secondary" type="button" onClick={triggerScheduleSync} disabled={scheduleSyncPending}>
+            {scheduleSyncPending ? "Syncing..." : "Sync schedule"}
+          </button>
           <Link className="button" href="/admin/matches">
             Manage matches
           </Link>
@@ -48,6 +82,7 @@ function AdminContent() {
           </Link>
         </div>
       </div>
+      {scheduleSyncMessage ? <div className="panel p-3 text-sm">{scheduleSyncMessage}</div> : null}
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="panel p-4">
           <h2 className="font-black">Matches needing action</h2>
@@ -87,4 +122,26 @@ function AdminContent() {
       </section>
     </main>
   )
+}
+
+function formatScheduleSyncSuccess(result: ScheduleSyncResponse) {
+  const sync = result.sync ?? {}
+  const settlement = result.settlement ?? {}
+
+  return [
+    `Schedule sync complete${sync.source ? ` from ${sync.source}` : ""}.`,
+    `Created ${sync.created ?? 0}, updated ${sync.updated ?? 0}, skipped ${sync.skipped ?? 0}, failed ${sync.failed ?? 0}.`,
+    `Locked ${result.locked ?? 0}.`,
+    `Settled ${settlement.settled ?? 0}, settlement failed ${settlement.failed ?? 0}.`,
+  ].join(" ")
+}
+
+function formatScheduleSyncError(error: ScheduleSyncError) {
+  if (error.nextAllowedAt) {
+    return `Schedule sync is rate limited. Try again after ${new Date(error.nextAllowedAt).toLocaleString()}.`
+  }
+  if (error.retryAfterSeconds) {
+    return `Schedule sync is rate limited. Try again in ${Math.ceil(error.retryAfterSeconds / 60)} minutes.`
+  }
+  return error.error ?? "Unable to sync schedule."
 }
