@@ -40,11 +40,6 @@
         { "fieldPath": "matchId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "leaderboard",
-      "queryScope": "COLLECTION",
-      "fields": [{ "fieldPath": "balance", "order": "DESCENDING" }]
     }
   ],
   "fieldOverrides": []
