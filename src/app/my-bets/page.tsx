@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
+import { DateFilter } from "@/components/date-filter"
 import { TeamIdentity } from "@/components/team-identity"
 import { formatPickLabel, teamsFromBet } from "@/lib/team-display"
-import { formatKickoff } from "@/lib/time"
+import { formatKickoff, formatLocalDateLabel, getLocalDateKey } from "@/lib/time"
 import type { BetPick } from "@/types/betting"
 
 type Bet = {
@@ -38,6 +39,8 @@ export default function MyBetsPage() {
 function MyBetsContent() {
   const { apiFetch } = useAuth()
   const [bets, setBets] = useState<Bet[]>([])
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(() => getLocalDateKey(new Date()))
+  const todayDateKey = getLocalDateKey(new Date())
 
   useEffect(() => {
     apiFetch("/api/my-bets")
@@ -45,8 +48,24 @@ function MyBetsContent() {
       .then((json) => setBets(json.bets ?? []))
   }, [apiFetch])
 
-  const pendingBets = bets.filter((bet) => bet.status === "PENDING")
-  const previousBets = bets.filter((bet) => bet.status !== "PENDING")
+  const dateKeys = useMemo(() => {
+    const keys = new Set<string>([todayDateKey])
+
+    if (selectedDateKey) keys.add(selectedDateKey)
+    for (const bet of bets) keys.add(getLocalDateKey(bet.kickoffAt))
+
+    return [...keys].sort()
+  }, [bets, selectedDateKey, todayDateKey])
+
+  const filteredBets = useMemo(() => {
+    if (!selectedDateKey) return bets
+
+    return bets.filter((bet) => getLocalDateKey(bet.kickoffAt) === selectedDateKey)
+  }, [bets, selectedDateKey])
+  const dateEmptySuffix = selectedDateKey ? ` on ${formatLocalDateLabel(selectedDateKey)}` : ""
+
+  const pendingBets = filteredBets.filter((bet) => bet.status === "PENDING")
+  const previousBets = filteredBets.filter((bet) => bet.status !== "PENDING")
 
   return (
     <main className="page grid gap-5">
@@ -54,8 +73,18 @@ function MyBetsContent() {
         <h1 className="text-3xl font-black">My bets</h1>
         <p className="mt-1 text-sm text-stone-600">Track pending picks and settled party fund results.</p>
       </div>
-      <BetTable title="Upcoming bets" bets={pendingBets} empty="No pending bets." />
-      <BetTable title="Previous bets" bets={previousBets} empty="No settled bets yet." />
+      <DateFilter
+        title="Match date"
+        selectedDateKey={selectedDateKey}
+        todayDateKey={todayDateKey}
+        dateKeys={dateKeys}
+        count={filteredBets.length}
+        singularLabel="bet"
+        pluralLabel="bets"
+        onSelectDate={setSelectedDateKey}
+      />
+      <BetTable title="Upcoming bets" bets={pendingBets} empty={`No pending bets${dateEmptySuffix}.`} />
+      <BetTable title="Previous bets" bets={previousBets} empty={`No settled bets${dateEmptySuffix}.`} />
     </main>
   )
 }

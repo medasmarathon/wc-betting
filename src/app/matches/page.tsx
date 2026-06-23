@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
+import { DateFilter } from "@/components/date-filter"
 import { MatchCard } from "@/components/match-card"
-import { addDaysToLocalDateKey, formatLocalDateLabel, getLocalDateKey } from "@/lib/time"
+import { formatLocalDateLabel, getLocalDateKey } from "@/lib/time"
 
 type Match = React.ComponentProps<typeof MatchCard>["match"]
 type MatchView = "all" | "upcoming" | "locked" | "completed"
@@ -86,58 +87,16 @@ function MatchesContent() {
           ))}
         </div>
       </div>
-      <section className="panel grid gap-3 p-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base font-black">Match date</h2>
-            <p className="mt-1 text-sm text-stone-600">
-              {selectedDateLabel} - {filteredMatches.length} {filteredMatches.length === 1 ? "match" : "matches"}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="button secondary !px-3"
-              aria-label="Previous day"
-              disabled={!selectedDateKey}
-              onClick={() => {
-                if (selectedDateKey) selectDate(addDaysToLocalDateKey(selectedDateKey, -1))
-              }}
-            >
-              {"<"}
-            </button>
-            <button type="button" className={`button ${selectedDateKey === todayDateKey ? "" : "secondary"}`} onClick={() => selectDate(todayDateKey)}>
-              Today
-            </button>
-            <button
-              type="button"
-              className="button secondary !px-3"
-              aria-label="Next day"
-              disabled={!selectedDateKey}
-              onClick={() => {
-                if (selectedDateKey) selectDate(addDaysToLocalDateKey(selectedDateKey, 1))
-              }}
-            >
-              {">"}
-            </button>
-          </div>
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          <button type="button" className={`button whitespace-nowrap ${selectedDateKey ? "secondary" : ""}`} onClick={() => selectDate(null)}>
-            All dates
-          </button>
-          {dateKeys.map((dateKey) => (
-            <button
-              key={dateKey}
-              type="button"
-              className={`button whitespace-nowrap ${selectedDateKey === dateKey ? "" : "secondary"}`}
-              onClick={() => selectDate(dateKey)}
-            >
-              {formatLocalDateLabel(dateKey)}
-            </button>
-          ))}
-        </div>
-      </section>
+      <DateFilter
+        title="Match date"
+        selectedDateKey={selectedDateKey}
+        todayDateKey={todayDateKey}
+        dateKeys={dateKeys}
+        count={filteredMatches.length}
+        singularLabel="match"
+        pluralLabel="matches"
+        onSelectDate={selectDate}
+      />
       {error ? <div className="panel p-4 text-red-700">{error}</div> : null}
       {filteredMatches.length ? (
         <div className="grid gap-4 md:grid-cols-2">
