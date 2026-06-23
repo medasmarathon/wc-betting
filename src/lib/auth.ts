@@ -1,5 +1,6 @@
 import type { DecodedIdToken } from "firebase-admin/auth"
 import { FieldValue } from "firebase-admin/firestore"
+import { ZodError } from "zod"
 import { getAdminAuth, getAdminDb } from "@/lib/firebase/admin"
 import type { UserDoc, UserRole } from "@/types/betting"
 
@@ -142,6 +143,9 @@ export async function ensureProfile(decoded: DecodedIdToken): Promise<AuthedUser
 export function handleRouteError(error: unknown) {
   if (error instanceof HttpError) {
     return Response.json({ error: error.message }, { status: error.status })
+  }
+  if (error instanceof ZodError) {
+    return Response.json({ error: error.issues[0]?.message ?? "Invalid input" }, { status: 400 })
   }
 
   const message = error instanceof Error ? error.message : "Unexpected error"

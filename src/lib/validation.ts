@@ -6,6 +6,11 @@ const oddsSchema = z.object({
   AWAY: z.coerce.number().positive(),
 })
 
+const optionalDisplayNameSchema = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().trim().min(1).max(120).optional(),
+)
+
 export const placeBetSchema = z.object({
   matchId: z.string().min(1),
   pick: z.enum(["HOME", "DRAW", "AWAY"]),
@@ -39,4 +44,10 @@ export const resultInputSchema = z.object({
 export const adjustBalanceSchema = z.object({
   amount: z.coerce.number().int().min(-100000).max(100000).refine((value) => value !== 0),
   reason: z.string().trim().min(3),
+})
+
+export const inviteInputSchema = z.object({
+  email: z.string().trim().email().transform((email) => email.toLowerCase()),
+  displayName: optionalDisplayNameSchema,
+  role: z.enum(["USER", "ADMIN"]).default("USER"),
 })

@@ -44,7 +44,10 @@ export type InviteDoc = {
   role: UserRole
   acceptedBy?: string
   acceptedAt?: FirebaseDate
+  createdBy?: string
   createdAt: FirebaseDate
+  updatedBy?: string
+  updatedAt?: FirebaseDate
 }
 
 export type MatchDoc = {

@@ -165,7 +165,8 @@ Deploy Firestore rules and indexes:
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-Create production invite documents in Firestore under `invites/{lowercaseEmail}`:
+Admins can add invites from `Admin -> Manage users`. The app writes invite documents in
+Firestore under `invites/{lowercaseEmail}`:
 
 ```ts
 {
