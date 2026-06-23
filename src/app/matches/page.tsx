@@ -1,8 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { MatchCard } from "@/components/match-card"
+import { addDaysToLocalDateKey, formatLocalDateLabel, getLocalDateKey } from "@/lib/time"
 
 type Match = React.ComponentProps<typeof MatchCard>["match"]
 type MatchView = "all" | "upcoming" | "locked" | "completed"
@@ -20,9 +21,11 @@ export default function MatchesPage() {
 function MatchesContent() {
   const { apiFetch } = useAuth()
   const [view, setView] = useState<MatchView>("all")
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(() => getLocalDateKey(new Date()))
   const [matches, setMatches] = useState<Match[]>([])
   const [error, setError] = useState<string | null>(null)
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null)
+  const todayDateKey = getLocalDateKey(new Date())
 
   const load = useCallback(() => {
     apiFetch(`/api/matches?view=${view}`)
@@ -37,8 +40,29 @@ function MatchesContent() {
 
   useEffect(() => load(), [load])
 
+  const dateKeys = useMemo(() => {
+    const keys = new Set<string>([todayDateKey])
+
+    if (selectedDateKey) keys.add(selectedDateKey)
+    for (const match of matches) keys.add(getLocalDateKey(match.kickoffAt))
+
+    return [...keys].sort()
+  }, [matches, selectedDateKey, todayDateKey])
+
+  const filteredMatches = useMemo(() => {
+    if (!selectedDateKey) return matches
+
+    return matches.filter((match) => getLocalDateKey(match.kickoffAt) === selectedDateKey)
+  }, [matches, selectedDateKey])
+  const selectedDateLabel = selectedDateKey ? formatLocalDateLabel(selectedDateKey) : "All dates"
+
   function selectView(nextView: MatchView) {
     setView(nextView)
+    setExpandedMatchId(null)
+  }
+
+  function selectDate(nextDateKey: string | null) {
+    setSelectedDateKey(nextDateKey)
     setExpandedMatchId(null)
   }
 
@@ -62,18 +86,76 @@ function MatchesContent() {
           ))}
         </div>
       </div>
+      <section className="panel grid gap-3 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-black">Match date</h2>
+            <p className="mt-1 text-sm text-stone-600">
+              {selectedDateLabel} - {filteredMatches.length} {filteredMatches.length === 1 ? "match" : "matches"}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="button secondary !px-3"
+              aria-label="Previous day"
+              disabled={!selectedDateKey}
+              onClick={() => {
+                if (selectedDateKey) selectDate(addDaysToLocalDateKey(selectedDateKey, -1))
+              }}
+            >
+              {"<"}
+            </button>
+            <button type="button" className={`button ${selectedDateKey === todayDateKey ? "" : "secondary"}`} onClick={() => selectDate(todayDateKey)}>
+              Today
+            </button>
+            <button
+              type="button"
+              className="button secondary !px-3"
+              aria-label="Next day"
+              disabled={!selectedDateKey}
+              onClick={() => {
+                if (selectedDateKey) selectDate(addDaysToLocalDateKey(selectedDateKey, 1))
+              }}
+            >
+              {">"}
+            </button>
+          </div>
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <button type="button" className={`button whitespace-nowrap ${selectedDateKey ? "secondary" : ""}`} onClick={() => selectDate(null)}>
+            All dates
+          </button>
+          {dateKeys.map((dateKey) => (
+            <button
+              key={dateKey}
+              type="button"
+              className={`button whitespace-nowrap ${selectedDateKey === dateKey ? "" : "secondary"}`}
+              onClick={() => selectDate(dateKey)}
+            >
+              {formatLocalDateLabel(dateKey)}
+            </button>
+          ))}
+        </div>
+      </section>
       {error ? <div className="panel p-4 text-red-700">{error}</div> : null}
-      <div className="grid gap-4 md:grid-cols-2">
-        {matches.map((match) => (
-          <MatchCard
-            key={match.id}
-            match={match}
-            expanded={expandedMatchId === match.id}
-            onToggleBet={() => setExpandedMatchId((current) => (current === match.id ? null : match.id))}
-            onPlaced={handleBetPlaced}
-          />
-        ))}
-      </div>
+      {filteredMatches.length ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {filteredMatches.map((match) => (
+            <MatchCard
+              key={match.id}
+              match={match}
+              expanded={expandedMatchId === match.id}
+              onToggleBet={() => setExpandedMatchId((current) => (current === match.id ? null : match.id))}
+              onPlaced={handleBetPlaced}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="panel p-4 text-sm text-stone-600">
+          {selectedDateKey ? `No matches on ${selectedDateLabel} for this view.` : "No matches for this view."}
+        </div>
+      )}
     </main>
   )
 }

@@ -17,7 +17,41 @@ export function toIso(value: FirebaseDate | Date | string | number | undefined):
 
 export function formatKickoff(value: FirebaseDate | Date | string | number): string {
   return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
   }).format(toDate(value))
+}
+
+export function getLocalDateKey(value: FirebaseDate | Date | string | number): string {
+  const date = toDate(value)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+
+  return `${year}-${month}-${day}`
+}
+
+export function addDaysToLocalDateKey(dateKey: string, days: number): string {
+  const date = dateFromLocalDateKey(dateKey)
+  date.setDate(date.getDate() + days)
+
+  return getLocalDateKey(date)
+}
+
+export function formatLocalDateLabel(dateKey: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(dateFromLocalDateKey(dateKey))
+}
+
+function dateFromLocalDateKey(dateKey: string): Date {
+  const [year, month, day] = dateKey.split("-").map(Number)
+
+  return new Date(year, month - 1, day)
 }
