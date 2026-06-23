@@ -63,7 +63,7 @@ describe("canPlaceBet", () => {
     matchStatus: "OPEN",
     userBalance: 100,
     stake: 50,
-    existingBet: false,
+    existingBet: null,
   }
 
   it("allows valid pre-kickoff bets", () => {
@@ -78,8 +78,34 @@ describe("canPlaceBet", () => {
     expect(canPlaceBet({ ...base, nowMs: 2001 }).reason).toMatch(/locked/i)
   })
 
-  it("blocks duplicate bets", () => {
-    expect(canPlaceBet({ ...base, existingBet: true }).reason).toMatch(/already/i)
+  it("allows pending bet edits before kickoff", () => {
+    expect(canPlaceBet({ ...base, existingBet: { stake: 40, status: "PENDING" } }).ok).toBe(true)
+  })
+
+  it("only requires balance for additional stake when editing", () => {
+    expect(
+      canPlaceBet({
+        ...base,
+        userBalance: 10,
+        stake: 60,
+        existingBet: { stake: 50, status: "PENDING" },
+      }).ok,
+    ).toBe(true)
+  })
+
+  it("blocks editing when the added stake exceeds balance", () => {
+    expect(
+      canPlaceBet({
+        ...base,
+        userBalance: 9,
+        stake: 60,
+        existingBet: { stake: 50, status: "PENDING" },
+      }).reason,
+    ).toMatch(/insufficient/i)
+  })
+
+  it("blocks edits to settled bets", () => {
+    expect(canPlaceBet({ ...base, existingBet: { stake: 50, status: "WON" } }).reason).toMatch(/pending/i)
   })
 
   it("blocks insufficient balance", () => {
@@ -127,8 +153,8 @@ describe("isMatchBettableForUser", () => {
     expect(isMatchBettableForUser(base)).toBe(true)
   })
 
-  it("returns false when the user already has a bet", () => {
-    expect(isMatchBettableForUser({ ...base, hasUserBet: true })).toBe(false)
+  it("returns true before kickoff when the user already has a pending bet to edit", () => {
+    expect(isMatchBettableForUser({ ...base, hasUserBet: true })).toBe(true)
   })
 
   it("returns false at kickoff", () => {

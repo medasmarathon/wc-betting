@@ -21,7 +21,14 @@ type MatchCardProps = {
     status: string
     odds: { HOME: number; DRAW: number; AWAY: number }
     isBettable: boolean
-    userBet?: { pick: BetPick; stake: number; status: string } | null
+    userBet?: {
+      pick: BetPick
+      stake: number
+      predictedHomeScore?: number
+      predictedAwayScore?: number
+      status: string
+      updatedAt?: string
+    } | null
   }
   expanded?: boolean
   onToggleBet?: () => void
@@ -29,7 +36,8 @@ type MatchCardProps = {
 }
 
 export function MatchCard({ match, expanded = false, onToggleBet, onPlaced }: MatchCardProps) {
-  const canPlaceInlineBet = match.isBettable && !match.userBet
+  const canEditBet = match.isBettable && match.userBet?.status === "PENDING"
+  const canUseInlineBetSlip = match.isBettable && (!match.userBet || canEditBet)
 
   return (
     <article className="panel grid gap-4 p-4">
@@ -52,21 +60,24 @@ export function MatchCard({ match, expanded = false, onToggleBet, onPlaced }: Ma
       {match.userBet ? (
         <div className="rounded-md bg-stone-100 p-3 text-sm">
           Your bet: <b>{formatPickLabel(match.userBet.pick, match)}</b> for <b>{match.userBet.stake}</b> points ({match.userBet.status})
+          {match.userBet.updatedAt ? (
+            <span className="mt-1 block text-xs text-stone-500">Last updated {formatKickoff(match.userBet.updatedAt)}</span>
+          ) : null}
         </div>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        {canPlaceInlineBet ? (
+        {canUseInlineBetSlip ? (
           <button className="button w-fit" type="button" aria-expanded={expanded} onClick={onToggleBet}>
-            {expanded ? "Close bet slip" : "Place bet"}
+            {expanded ? "Close bet slip" : canEditBet ? "Edit bet" : "Place bet"}
           </button>
         ) : null}
-        <Link className={`button w-fit ${canPlaceInlineBet ? "secondary" : ""}`} href={`/matches/${match.id}`}>
+        <Link className={`button w-fit ${canUseInlineBetSlip ? "secondary" : ""}`} href={`/matches/${match.id}`}>
           Details
         </Link>
       </div>
-      {canPlaceInlineBet && expanded && onPlaced ? (
+      {canUseInlineBetSlip && expanded && onPlaced ? (
         <div className="border-t border-[var(--line)] pt-4">
-          <BetForm match={match} onPlaced={onPlaced} />
+          <BetForm key={match.userBet?.updatedAt ?? `${match.id}-new`} match={match} onPlaced={onPlaced} />
         </div>
       ) : null}
     </article>

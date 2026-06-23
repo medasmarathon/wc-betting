@@ -29,10 +29,14 @@ type MatchDetail = {
   userBet?: {
     pick: BetPick
     stake: number
+    predictedHomeScore?: number
+    predictedAwayScore?: number
     potentialPayout: number
     payout: number
     fundContribution?: number
     status: string
+    placedAt?: string
+    updatedAt?: string
   } | null
 }
 
@@ -124,18 +128,27 @@ function MatchDetailContent() {
       </section>
       <aside className="panel h-fit p-5">
         {match.userBet ? (
-          <div className="grid gap-2">
-            <h2 className="text-xl font-black">Your bet</h2>
-            <p>
-              <b>{formatPickLabel(match.userBet.pick, match)}</b> for <b>{match.userBet.stake}</b> points
-            </p>
-            <p>Status: {match.userBet.status}</p>
-            <p>Refund if correct: {match.userBet.potentialPayout}</p>
-            <p>Actual refund: {match.userBet.payout}</p>
-            <p>Party fund contribution: {match.userBet.fundContribution ?? 0}</p>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <h2 className="text-xl font-black">Your bet</h2>
+              <p>
+                <b>{formatPickLabel(match.userBet.pick, match)}</b> for <b>{match.userBet.stake}</b> points
+              </p>
+              <p>Status: {match.userBet.status}</p>
+              <p>Refund if correct: {match.userBet.potentialPayout}</p>
+              <p>Actual refund: {match.userBet.payout}</p>
+              <p>Party fund contribution: {match.userBet.fundContribution ?? 0}</p>
+              {match.userBet.placedAt ? <p>Placed: {formatKickoff(match.userBet.placedAt)}</p> : null}
+              {match.userBet.updatedAt ? <p>Last updated: {formatKickoff(match.userBet.updatedAt)}</p> : null}
+            </div>
+            {match.isBettable && match.userBet.status === "PENDING" ? (
+              <div className="border-t border-[var(--line)] pt-4">
+                <BetForm key={match.userBet.updatedAt ?? `${match.id}-edit`} match={match} onPlaced={load} />
+              </div>
+            ) : null}
           </div>
         ) : match.isBettable ? (
-          <BetForm match={match} onPlaced={load} />
+          <BetForm key={`${match.id}-new`} match={match} onPlaced={load} />
         ) : (
           <p className="text-sm text-stone-600">Betting is closed for this match.</p>
         )}

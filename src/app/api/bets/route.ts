@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     const user = await requireUser(request)
     const input = placeBetSchema.parse(await request.json())
     const result = await placeBet(user, input)
-    return Response.json(result, { status: 201 })
+    return Response.json(result, { status: result.action === "updated" ? 200 : 201 })
   } catch (error) {
     return handleRouteError(error)
   }

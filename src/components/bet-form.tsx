@@ -17,16 +17,28 @@ type BetFormProps = {
     homeTeamCode?: string
     awayTeamCode?: string
     odds: { HOME: number; DRAW: number; AWAY: number }
+    userBet?: {
+      pick: BetPick
+      stake: number
+      predictedHomeScore?: number
+      predictedAwayScore?: number
+      status: string
+    } | null
   }
   onPlaced: () => void
 }
 
 export function BetForm({ match, onPlaced }: BetFormProps) {
   const { apiFetch } = useAuth()
-  const [pick, setPick] = useState<BetPick>("HOME")
-  const [stake, setStake] = useState(DEFAULT_BET_STAKE)
-  const [predictedHomeScore, setPredictedHomeScore] = useState("")
-  const [predictedAwayScore, setPredictedAwayScore] = useState("")
+  const isEditing = Boolean(match.userBet)
+  const [pick, setPick] = useState<BetPick>(match.userBet?.pick ?? "HOME")
+  const [stake, setStake] = useState(match.userBet?.stake ?? DEFAULT_BET_STAKE)
+  const [predictedHomeScore, setPredictedHomeScore] = useState(
+    match.userBet?.predictedHomeScore?.toString() ?? "",
+  )
+  const [predictedAwayScore, setPredictedAwayScore] = useState(
+    match.userBet?.predictedAwayScore?.toString() ?? "",
+  )
   const [message, setMessage] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -47,13 +59,14 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
       })
       const json = await response.json()
       if (!response.ok) {
-        setMessage(json.error ?? "Unable to place bet")
+        setMessage(json.error ?? "Unable to save bet")
         return
       }
-      setMessage(`Bet placed on ${formatPickLabel(pick, match)}.`)
+      const savedAction = json.action === "updated" || isEditing ? "updated" : "placed"
+      setMessage(`Bet ${savedAction} on ${formatPickLabel(pick, match)}.`)
       onPlaced()
     } catch {
-      setMessage("Unable to place bet")
+      setMessage("Unable to save bet")
     } finally {
       setPending(false)
     }
@@ -108,7 +121,7 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
         </label>
       </div>
       <button className="button" disabled={pending}>
-        Place bet
+        {pending ? "Saving..." : isEditing ? "Save changes" : "Place bet"}
       </button>
       {message ? <p className="text-sm text-stone-700">{message}</p> : null}
     </form>

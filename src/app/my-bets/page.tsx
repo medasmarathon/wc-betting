@@ -22,6 +22,8 @@ type Bet = {
   payout: number
   fundContribution?: number
   status: string
+  placedAt?: string
+  updatedAt?: string
   matchStatus?: string
   homeScore?: number
   awayScore?: number
@@ -103,6 +105,8 @@ function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: s
               <th>Stake</th>
               <th>Result</th>
               <th>Status</th>
+              <th>Placed</th>
+              <th>Updated</th>
               <th>Refund</th>
               <th>Fund</th>
             </tr>
@@ -125,6 +129,8 @@ function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: s
                     <td>{bet.stake}</td>
                     <td>{formatResult(bet, teams)}</td>
                     <td>{bet.status}</td>
+                    <td>{bet.placedAt ? formatKickoff(bet.placedAt) : ""}</td>
+                    <td>{bet.updatedAt ? formatKickoff(bet.updatedAt) : ""}</td>
                     <td>{bet.payout}</td>
                     <td>{bet.fundContribution ?? 0}</td>
                   </tr>
@@ -132,7 +138,7 @@ function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: s
               })
             ) : (
               <tr>
-                <td colSpan={8} className="text-stone-600">
+                <td colSpan={10} className="text-stone-600">
                   {empty}
                 </td>
               </tr>

@@ -53,9 +53,8 @@ export function isMatchBettableForUser(params: {
   kickoffMs: number
   matchStatus: string
   teamsConfirmed?: boolean
-  hasUserBet: boolean
+  hasUserBet?: boolean
 }) {
-  if (params.hasUserBet) return false
   return canMatchAcceptNewBet(params).ok
 }
 
@@ -66,12 +65,16 @@ export function canPlaceBet(params: {
   teamsConfirmed?: boolean
   userBalance: number
   stake: number
-  existingBet: boolean
+  existingBet?: Pick<BetDoc, "stake" | "status"> | null
 }) {
-  if (params.existingBet) return { ok: false, reason: "You already placed a bet on this match" }
   const matchAllowed = canMatchAcceptNewBet(params)
   if (!matchAllowed.ok) return matchAllowed
-  if (params.userBalance < params.stake) return { ok: false, reason: "Insufficient balance" }
+  if (params.existingBet && params.existingBet.status !== "PENDING") {
+    return { ok: false, reason: "Only pending bets can be edited" }
+  }
+  const existingStake = params.existingBet?.stake ?? 0
+  const additionalStake = Math.max(0, params.stake - existingStake)
+  if (params.userBalance < additionalStake) return { ok: false, reason: "Insufficient balance" }
   return { ok: true, reason: undefined }
 }
 
@@ -82,10 +85,11 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
   const betId = `${input.matchId}_${user.uid}`
   const betRef = db.collection("bets").doc(betId)
   const stakeTxRef = db.collection("walletTransactions").doc(`stake_${betId}`)
+  const stakeAdjustmentTxRef = db.collection("walletTransactions").doc()
   const leaderboardRef = db.collection("leaderboard").doc(user.uid)
   const auditRef = db.collection("auditLogs").doc()
 
-  await db.runTransaction(async (tx) => {
+  const action = await db.runTransaction<"placed" | "updated">(async (tx) => {
     const [userSnap, matchSnap, existingBet] = await Promise.all([
       tx.get(userRef),
       tx.get(matchRef),
@@ -97,6 +101,7 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
 
     const userDoc = userSnap.data() as UserDoc
     const match = matchSnap.data() as MatchDoc
+    const existingBetDoc = existingBet.exists ? (existingBet.data() as BetDoc) : null
     const kickoffMs = match.kickoffAt.toMillis?.() ?? 0
     const nowMs = Date.now()
     const allowed = canPlaceBet({
@@ -106,7 +111,7 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
       teamsConfirmed: match.teamsConfirmed,
       userBalance: userDoc.balance,
       stake: input.stake,
-      existingBet: existingBet.exists,
+      existingBet: existingBetDoc ? { stake: existingBetDoc.stake, status: existingBetDoc.status } : null,
     })
 
     if (!allowed.ok) throw new HttpError(400, allowed.reason ?? "Bet is not allowed")
@@ -114,10 +119,14 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
 
     const odds = match.odds[input.pick]
     const potentialPayout = calculatePayout(input.stake)
-    const newBalance = userDoc.balance - input.stake
+    const previousStake = existingBetDoc?.stake ?? 0
+    const stakeDelta = input.stake - previousStake
+    const newBalance = userDoc.balance - stakeDelta
     const matchLabel = `${match.homeTeam} vs ${match.awayTeam}`
+    const savedAt = Timestamp.fromMillis(nowMs)
+    const action = existingBetDoc ? "updated" : "placed"
 
-    const betDoc: BetDoc = {
+    const betFields = {
       userId: user.uid,
       userEmail: user.email,
       userDisplayName: user.displayName,
@@ -133,44 +142,79 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
       odds,
       potentialPayout,
       fundContribution: 0,
-      ...(input.predictedHomeScore === undefined
-        ? {}
-        : { predictedHomeScore: input.predictedHomeScore }),
-      ...(input.predictedAwayScore === undefined
-        ? {}
-        : { predictedAwayScore: input.predictedAwayScore }),
-      status: "PENDING",
+      status: "PENDING" as const,
       payout: 0,
-      placedAt: Timestamp.fromMillis(nowMs),
     }
 
-    tx.set(betRef, betDoc)
+    if (existingBetDoc) {
+      tx.update(betRef, {
+        ...betFields,
+        predictedHomeScore:
+          input.predictedHomeScore === undefined ? FieldValue.delete() : input.predictedHomeScore,
+        predictedAwayScore:
+          input.predictedAwayScore === undefined ? FieldValue.delete() : input.predictedAwayScore,
+        updatedAt: savedAt,
+      })
+    } else {
+      const betDoc: BetDoc = {
+        ...betFields,
+        ...(input.predictedHomeScore === undefined
+          ? {}
+          : { predictedHomeScore: input.predictedHomeScore }),
+        ...(input.predictedAwayScore === undefined
+          ? {}
+          : { predictedAwayScore: input.predictedAwayScore }),
+        placedAt: savedAt,
+        updatedAt: savedAt,
+      }
+      tx.set(betRef, betDoc)
+    }
     tx.update(userRef, { balance: newBalance, updatedAt: FieldValue.serverTimestamp() })
     tx.update(matchRef, {
-      betCount: FieldValue.increment(1),
-      totalStaked: FieldValue.increment(input.stake),
+      ...(existingBetDoc ? {} : { betCount: FieldValue.increment(1) }),
+      totalStaked: FieldValue.increment(stakeDelta),
       updatedAt: FieldValue.serverTimestamp(),
     })
-    tx.set(stakeTxRef, {
-      userId: user.uid,
-      userDisplayName: user.displayName,
-      type: "BET_STAKE",
-      amount: -input.stake,
-      balanceAfter: newBalance,
-      betId,
-      matchId: input.matchId,
-      description: `Stake on ${matchLabel}`,
-      createdAt: FieldValue.serverTimestamp(),
-    })
+    if (existingBetDoc) {
+      if (stakeDelta !== 0) {
+        tx.set(stakeAdjustmentTxRef, {
+          userId: user.uid,
+          userDisplayName: user.displayName,
+          type: "BET_STAKE_ADJUSTMENT",
+          amount: -stakeDelta,
+          balanceAfter: newBalance,
+          betId,
+          matchId: input.matchId,
+          description: `${stakeDelta > 0 ? "Increased" : "Reduced"} stake on ${matchLabel}`,
+          createdAt: FieldValue.serverTimestamp(),
+        })
+      }
+    } else {
+      tx.set(stakeTxRef, {
+        userId: user.uid,
+        userDisplayName: user.displayName,
+        type: "BET_STAKE",
+        amount: -input.stake,
+        balanceAfter: newBalance,
+        betId,
+        matchId: input.matchId,
+        description: `Stake on ${matchLabel}`,
+        createdAt: FieldValue.serverTimestamp(),
+      })
+    }
     tx.set(
       leaderboardRef,
       {
         userId: user.uid,
         displayName: user.displayName,
         balance: newBalance,
-        totalBets: FieldValue.increment(1),
-        pendingBets: FieldValue.increment(1),
-        totalStaked: FieldValue.increment(input.stake),
+        ...(existingBetDoc
+          ? {}
+          : {
+              totalBets: FieldValue.increment(1),
+              pendingBets: FieldValue.increment(1),
+            }),
+        totalStaked: FieldValue.increment(stakeDelta),
         netProfit: newBalance - userDoc.startingBalance,
         updatedAt: FieldValue.serverTimestamp(),
       },
@@ -179,15 +223,38 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
     tx.set(auditRef, {
       actorId: user.uid,
       actorEmail: user.email,
-      action: "BET_PLACED",
+      action: existingBetDoc ? "BET_UPDATED" : "BET_PLACED",
       entityType: "BET",
       entityId: betId,
-      after: { matchId: input.matchId, pick: input.pick, stake: input.stake, odds },
+      ...(existingBetDoc
+        ? {
+            before: {
+              pick: existingBetDoc.pick,
+              stake: existingBetDoc.stake,
+              ...(existingBetDoc.predictedHomeScore === undefined
+                ? {}
+                : { predictedHomeScore: existingBetDoc.predictedHomeScore }),
+              ...(existingBetDoc.predictedAwayScore === undefined
+                ? {}
+                : { predictedAwayScore: existingBetDoc.predictedAwayScore }),
+            },
+          }
+        : {}),
+      after: {
+        matchId: input.matchId,
+        pick: input.pick,
+        stake: input.stake,
+        odds,
+        stakeDelta,
+        ...(input.predictedHomeScore === undefined ? {} : { predictedHomeScore: input.predictedHomeScore }),
+        ...(input.predictedAwayScore === undefined ? {} : { predictedAwayScore: input.predictedAwayScore }),
+      },
       createdAt: FieldValue.serverTimestamp(),
     })
+    return action
   })
 
-  return { betId }
+  return { betId, action }
 }
 
 export async function enterResult(

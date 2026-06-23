@@ -20,6 +20,7 @@ export type BetStatus = "PENDING" | "WON" | "LOST" | "VOIDED"
 export type WalletTransactionType =
   | "INITIAL_CREDIT"
   | "BET_STAKE"
+  | "BET_STAKE_ADJUSTMENT"
   | "BET_PAYOUT"
   | "ADMIN_ADJUSTMENT"
   | "VOID_REFUND"
@@ -101,6 +102,7 @@ export type BetDoc = {
   status: BetStatus
   payout: number
   placedAt: FirebaseDate
+  updatedAt: FirebaseDate
   settledAt?: FirebaseDate
 }
 
