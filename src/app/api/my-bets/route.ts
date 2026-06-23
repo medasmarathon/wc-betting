@@ -1,7 +1,7 @@
 import { handleRouteError, requireUser } from "@/lib/auth"
 import { getAdminDb } from "@/lib/firebase/admin"
 import { serializeDoc } from "@/lib/serialize"
-import type { MatchDoc } from "@/types/betting"
+import type { BetDoc, MatchDoc } from "@/types/betting"
 
 export async function GET(request: Request) {
   try {
@@ -26,10 +26,12 @@ export async function GET(request: Request) {
     const matchesById = new Map(matchSnaps.filter((doc) => doc.exists).map((doc) => [doc.id, doc.data() as MatchDoc]))
 
     const bets = snap.docs.map((doc) => {
-      const data = doc.data()
+      const data = doc.data() as BetDoc
       const match = matchesById.get(String(data.matchId))
       return {
         ...serializeDoc(doc.id, data),
+        homeTeamCode: match?.homeTeamCode ?? data.homeTeamCode,
+        awayTeamCode: match?.awayTeamCode ?? data.awayTeamCode,
         matchStatus: match?.status,
         homeScore: match?.homeScore,
         awayScore: match?.awayScore,

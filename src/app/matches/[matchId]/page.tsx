@@ -5,7 +5,10 @@ import { useCallback, useEffect, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { BetForm } from "@/components/bet-form"
 import { StatusBadge } from "@/components/status-badge"
+import { MatchupLabel, TeamIdentity } from "@/components/team-identity"
+import { formatPickLabel } from "@/lib/team-display"
 import { formatKickoff } from "@/lib/time"
+import type { BetPick } from "@/types/betting"
 
 const MAX_TIMEOUT_MS = 2_147_483_647
 
@@ -13,6 +16,8 @@ type MatchDetail = {
   id: string
   homeTeam: string
   awayTeam: string
+  homeTeamCode?: string
+  awayTeamCode?: string
   groupName?: string
   stage: string
   kickoffAt: string
@@ -22,7 +27,7 @@ type MatchDetail = {
   homeScore?: number
   awayScore?: number
   userBet?: {
-    pick: string
+    pick: BetPick
     stake: number
     potentialPayout: number
     payout: number
@@ -92,7 +97,12 @@ function MatchDetailContent() {
         <div className="flex flex-wrap justify-between gap-3">
           <div>
             <h1 className="text-3xl font-black">
-              {match.homeTeam} vs {match.awayTeam}
+              <MatchupLabel
+                homeTeam={match.homeTeam}
+                awayTeam={match.awayTeam}
+                homeTeamCode={match.homeTeamCode}
+                awayTeamCode={match.awayTeamCode}
+              />
             </h1>
             <p className="mt-1 text-sm text-stone-600">
               {[match.groupName, match.stage, formatKickoff(match.kickoffAt)].filter(Boolean).join(" • ")}
@@ -101,8 +111,14 @@ function MatchDetailContent() {
           <StatusBadge status={match.status} />
         </div>
         {match.homeScore !== undefined && match.awayScore !== undefined ? (
-          <div className="rounded-md bg-stone-100 p-4 text-2xl font-black">
-            {match.homeScore} - {match.awayScore}
+          <div className="rounded-md bg-stone-100 p-4">
+            <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+              <TeamIdentity team={match.homeTeam} teamCode={match.homeTeamCode} className="font-black" />
+              <div className="text-2xl font-black tabular-nums">
+                {match.homeScore} - {match.awayScore}
+              </div>
+              <TeamIdentity team={match.awayTeam} teamCode={match.awayTeamCode} className="font-black sm:justify-self-end" />
+            </div>
           </div>
         ) : null}
       </section>
@@ -111,7 +127,7 @@ function MatchDetailContent() {
           <div className="grid gap-2">
             <h2 className="text-xl font-black">Your bet</h2>
             <p>
-              <b>{match.userBet.pick}</b> for <b>{match.userBet.stake}</b> points
+              <b>{formatPickLabel(match.userBet.pick, match)}</b> for <b>{match.userBet.stake}</b> points
             </p>
             <p>Status: {match.userBet.status}</p>
             <p>Refund if correct: {match.userBet.potentialPayout}</p>
@@ -119,7 +135,7 @@ function MatchDetailContent() {
             <p>Party fund contribution: {match.userBet.fundContribution ?? 0}</p>
           </div>
         ) : match.isBettable ? (
-          <BetForm matchId={match.id} onPlaced={load} />
+          <BetForm match={match} onPlaced={load} />
         ) : (
           <p className="text-sm text-stone-600">Betting is closed for this match.</p>
         )}

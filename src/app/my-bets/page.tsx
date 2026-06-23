@@ -2,13 +2,20 @@
 
 import { useEffect, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
+import { TeamIdentity } from "@/components/team-identity"
+import { formatPickLabel, teamsFromBet } from "@/lib/team-display"
 import { formatKickoff } from "@/lib/time"
+import type { BetPick } from "@/types/betting"
 
 type Bet = {
   id: string
   matchLabel: string
+  homeTeam?: string
+  awayTeam?: string
+  homeTeamCode?: string
+  awayTeamCode?: string
   kickoffAt: string
-  pick: string
+  pick: BetPick
   stake: number
   potentialPayout: number
   payout: number
@@ -17,7 +24,7 @@ type Bet = {
   matchStatus?: string
   homeScore?: number
   awayScore?: number
-  resultPick?: string
+  resultPick?: BetPick
 }
 
 export default function MyBetsPage() {
@@ -73,18 +80,27 @@ function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: s
           </thead>
           <tbody>
             {bets.length ? (
-              bets.map((bet) => (
-                <tr key={bet.id}>
-                  <td className="font-bold">{bet.matchLabel}</td>
-                  <td>{formatKickoff(bet.kickoffAt)}</td>
-                  <td>{bet.pick}</td>
-                  <td>{bet.stake}</td>
-                  <td>{formatResult(bet)}</td>
-                  <td>{bet.status}</td>
-                  <td>{bet.payout}</td>
-                  <td>{bet.fundContribution ?? 0}</td>
-                </tr>
-              ))
+              bets.map((bet) => {
+                const teams = teamsFromBet(bet)
+                return (
+                  <tr key={bet.id}>
+                    <td className="font-bold">
+                      <div className="grid min-w-[220px] gap-1">
+                        <TeamIdentity team={teams.homeTeam} teamCode={teams.homeTeamCode} compact />
+                        <span className="text-xs font-bold uppercase text-stone-400">vs</span>
+                        <TeamIdentity team={teams.awayTeam} teamCode={teams.awayTeamCode} compact />
+                      </div>
+                    </td>
+                    <td>{formatKickoff(bet.kickoffAt)}</td>
+                    <td>{formatPickLabel(bet.pick, teams)}</td>
+                    <td>{bet.stake}</td>
+                    <td>{formatResult(bet, teams)}</td>
+                    <td>{bet.status}</td>
+                    <td>{bet.payout}</td>
+                    <td>{bet.fundContribution ?? 0}</td>
+                  </tr>
+                )
+              })
             ) : (
               <tr>
                 <td colSpan={8} className="text-stone-600">
@@ -99,8 +115,8 @@ function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: s
   )
 }
 
-function formatResult(bet: Bet) {
+function formatResult(bet: Bet, teams: ReturnType<typeof teamsFromBet>) {
   if (bet.homeScore === undefined || bet.awayScore === undefined) return bet.matchStatus ?? "TBD"
-  const winner = bet.resultPick ? ` (${bet.resultPick})` : ""
+  const winner = bet.resultPick ? ` (${formatPickLabel(bet.resultPick, teams)})` : ""
   return `${bet.homeScore} - ${bet.awayScore}${winner}`
 }

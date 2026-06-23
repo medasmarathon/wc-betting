@@ -88,6 +88,8 @@ export type BetDoc = {
   matchLabel: string
   homeTeam: string
   awayTeam: string
+  homeTeamCode?: string
+  awayTeamCode?: string
   kickoffAt: FirebaseDate
   pick: BetPick
   stake: number

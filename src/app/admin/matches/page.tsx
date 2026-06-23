@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { StatusBadge } from "@/components/status-badge"
+import { MatchupLabel } from "@/components/team-identity"
 import { formatKickoff } from "@/lib/time"
 
 type Match = {
   id: string
   homeTeam: string
   awayTeam: string
+  homeTeamCode?: string
+  awayTeamCode?: string
   groupName?: string
   stage: string
   kickoffAt: string
@@ -34,6 +37,8 @@ function AdminMatchesContent() {
   const [form, setForm] = useState({
     homeTeam: "",
     awayTeam: "",
+    homeTeamCode: "",
+    awayTeamCode: "",
     groupName: "",
     stage: "GROUP",
     kickoffAt: "",
@@ -57,6 +62,8 @@ function AdminMatchesContent() {
       body: JSON.stringify({
         homeTeam: form.homeTeam,
         awayTeam: form.awayTeam,
+        homeTeamCode: form.homeTeamCode || undefined,
+        awayTeamCode: form.awayTeamCode || undefined,
         groupName: form.groupName || undefined,
         stage: form.stage,
         kickoffAt: form.kickoffAt,
@@ -71,7 +78,7 @@ function AdminMatchesContent() {
     const json = await response.json()
     setMessage(response.ok ? "Match created." : json.error ?? "Unable to create match")
     if (response.ok) {
-      setForm({ ...form, homeTeam: "", awayTeam: "", groupName: "", kickoffAt: "" })
+      setForm({ ...form, homeTeam: "", awayTeam: "", homeTeamCode: "", awayTeamCode: "", groupName: "", kickoffAt: "" })
       load()
     }
   }
@@ -94,6 +101,8 @@ function AdminMatchesContent() {
         <div className="grid gap-3 md:grid-cols-2">
           <input className="field" placeholder="Home team" value={form.homeTeam} onChange={(event) => setForm({ ...form, homeTeam: event.target.value })} />
           <input className="field" placeholder="Away team" value={form.awayTeam} onChange={(event) => setForm({ ...form, awayTeam: event.target.value })} />
+          <input className="field" placeholder="Home team code (MEX)" value={form.homeTeamCode} onChange={(event) => setForm({ ...form, homeTeamCode: event.target.value.toUpperCase() })} />
+          <input className="field" placeholder="Away team code (RSA)" value={form.awayTeamCode} onChange={(event) => setForm({ ...form, awayTeamCode: event.target.value.toUpperCase() })} />
           <input className="field" placeholder="Group" value={form.groupName} onChange={(event) => setForm({ ...form, groupName: event.target.value })} />
           <select className="field" value={form.stage} onChange={(event) => setForm({ ...form, stage: event.target.value })}>
             {["GROUP", "ROUND_OF_32", "ROUND_OF_16", "QUARTER_FINAL", "SEMI_FINAL", "THIRD_PLACE", "FINAL"].map((stage) => (
@@ -135,7 +144,12 @@ function AdminMatchRow({
       <div className="flex flex-wrap justify-between gap-3">
         <div>
           <h2 className="text-xl font-black">
-            {match.homeTeam} vs {match.awayTeam}
+            <MatchupLabel
+              homeTeam={match.homeTeam}
+              awayTeam={match.awayTeam}
+              homeTeamCode={match.homeTeamCode}
+              awayTeamCode={match.awayTeamCode}
+            />
           </h2>
           <p className="text-sm text-stone-600">
             {[match.groupName, match.stage, formatKickoff(match.kickoffAt)].filter(Boolean).join(" • ")}
@@ -144,13 +158,13 @@ function AdminMatchRow({
         <StatusBadge status={match.status} />
       </div>
       <div className="grid gap-2 md:grid-cols-[100px_100px_140px_auto]">
-        <input className="field" type="number" min={0} placeholder="Home" value={homeScore} onChange={(event) => setHomeScore(event.target.value)} />
-        <input className="field" type="number" min={0} placeholder="Away" value={awayScore} onChange={(event) => setAwayScore(event.target.value)} />
+        <input className="field" type="number" min={0} placeholder={match.homeTeam} value={homeScore} onChange={(event) => setHomeScore(event.target.value)} />
+        <input className="field" type="number" min={0} placeholder={match.awayTeam} value={awayScore} onChange={(event) => setAwayScore(event.target.value)} />
         <select className="field" value={resultPick} onChange={(event) => setResultPick(event.target.value)}>
           <option value="">Auto result</option>
-          <option value="HOME">Home wins</option>
+          <option value="HOME">{match.homeTeam} wins</option>
           <option value="DRAW">Draw</option>
-          <option value="AWAY">Away wins</option>
+          <option value="AWAY">{match.awayTeam} wins</option>
         </select>
         <div className="flex flex-wrap gap-2">
           <button className="button secondary" onClick={() => action(`/api/admin/matches/${match.id}/lock`)}>

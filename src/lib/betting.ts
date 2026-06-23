@@ -125,6 +125,8 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
       matchLabel,
       homeTeam: match.homeTeam,
       awayTeam: match.awayTeam,
+      ...(match.homeTeamCode ? { homeTeamCode: match.homeTeamCode } : {}),
+      ...(match.awayTeamCode ? { awayTeamCode: match.awayTeamCode } : {}),
       kickoffAt: match.kickoffAt,
       pick: input.pick,
       stake: input.stake,

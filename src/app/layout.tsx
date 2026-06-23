@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { AppShell, AuthProvider } from "@/components/auth-provider"
+import "flag-icons/css/flag-icons.min.css"
 import "./globals.css"
 
 export const metadata: Metadata = {
