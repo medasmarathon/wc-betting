@@ -1,6 +1,6 @@
 import { handleRouteError, requireUser } from "@/lib/auth"
 import { getAdminDb } from "@/lib/firebase/admin"
-import { serializeDoc } from "@/lib/serialize"
+import { serializeBetDoc } from "@/lib/serialize"
 import type { BetDoc, MatchDoc } from "@/types/betting"
 
 export async function GET(request: Request) {
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       const data = doc.data() as BetDoc
       const match = matchesById.get(String(data.matchId))
       return {
-        ...serializeDoc(doc.id, data),
+        ...serializeBetDoc(doc.id, data),
         homeTeamCode: match?.homeTeamCode ?? data.homeTeamCode,
         awayTeamCode: match?.awayTeamCode ?? data.awayTeamCode,
         matchStatus: match?.status,

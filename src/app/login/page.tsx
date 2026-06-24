@@ -48,8 +48,8 @@ export default function LoginPage() {
     <main className="page grid min-h-[calc(100vh-64px)] place-items-center">
       <section className="panel grid w-full max-w-md gap-5 p-6">
         <div>
-          <h1 className="text-2xl font-black">Sign in</h1>
-          <p className="mt-1 text-sm text-stone-600">Invite-only, points-only World Cup pool.</p>
+          <h1 className="page-title text-2xl font-black">Sign in</h1>
+          <p className="page-subtitle mt-1 text-sm">Invite-only, points-only World Cup pool.</p>
         </div>
         <form className="grid gap-3" onSubmit={submit}>
           <label className="grid gap-1 text-sm font-bold">
@@ -67,7 +67,7 @@ export default function LoginPage() {
         <Button variant="outline" onClick={signInWithGoogle} disabled={pending} loading={pending}>
           Continue with Google
         </Button>
-        {message || error ? <p className="text-sm text-red-700">{message ?? error}</p> : null}
+        {message || error ? <p className="danger-text text-sm">{message ?? error}</p> : null}
       </section>
     </main>
   )

@@ -1,4 +1,5 @@
 import { toIso } from "@/lib/time"
+import type { BetDoc } from "@/types/betting"
 
 export function serializeDoc<T extends Record<string, unknown>>(id: string, data: T) {
   return {
@@ -7,6 +8,15 @@ export function serializeDoc<T extends Record<string, unknown>>(id: string, data
       Object.entries(data).map(([key, value]) => [key, serializeValue(value)]),
     ),
   }
+}
+
+export function serializeBetDoc(id: string, data: BetDoc) {
+  const serialized = serializeDoc(id, data as unknown as Record<string, unknown>) as Record<string, unknown> & {
+    id: string
+  }
+  delete serialized.predictedHomeScore
+  delete serialized.predictedAwayScore
+  return serialized
 }
 
 function serializeValue(value: unknown): unknown {

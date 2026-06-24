@@ -30,11 +30,11 @@ export function DateFilter({
     <section className="panel grid gap-4 p-3">
       <div>
         <h2 className="text-base font-black">{title}</h2>
-        <p className="mt-1 text-sm text-stone-600">
+        <p className="page-subtitle mt-1 text-sm">
           {selectedDateLabel} - {count} {count === 1 ? singularLabel : pluralLabel}
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="date-filter-actions">
         <button type="button" className={`button whitespace-nowrap ${selectedDateKey ? "secondary" : ""}`} onClick={() => onSelectDate(null)}>
           All dates
         </button>

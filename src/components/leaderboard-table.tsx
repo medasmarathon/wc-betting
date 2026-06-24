@@ -11,7 +11,7 @@ type Row = {
 
 export function LeaderboardTable({ rows }: { rows: Row[] }) {
   return (
-    <div className="panel overflow-x-auto">
+    <div className="panel table-shell">
       <table className="table">
         <thead>
           <tr>
@@ -28,14 +28,14 @@ export function LeaderboardTable({ rows }: { rows: Row[] }) {
         <tbody>
           {rows.map((row, index) => (
             <tr key={row.id}>
-              <td>{index + 1}</td>
-              <td className="font-bold">{row.displayName}</td>
-              <td>{row.balance}</td>
-              <td>{row.totalBets ?? 0}</td>
-              <td>{row.wonBets ?? 0}</td>
-              <td>{row.lostBets ?? 0}</td>
-              <td>{row.pendingBets ?? 0}</td>
-              <td>{row.netProfit ?? 0}</td>
+              <td data-label="Rank">{index + 1}</td>
+              <td data-label="Name" className="page-title font-bold">{row.displayName}</td>
+              <td data-label="Balance">{row.balance}</td>
+              <td data-label="Bets">{row.totalBets ?? 0}</td>
+              <td data-label="Wins">{row.wonBets ?? 0}</td>
+              <td data-label="Losses">{row.lostBets ?? 0}</td>
+              <td data-label="Pending">{row.pendingBets ?? 0}</td>
+              <td data-label="Net">{row.netProfit ?? 0}</td>
             </tr>
           ))}
         </tbody>

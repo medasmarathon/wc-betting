@@ -192,27 +192,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <header className="border-b border-[var(--line)] bg-white">
-        <div className="mx-auto flex w-[min(1180px,calc(100vw-32px))] flex-wrap items-center justify-between gap-3 py-3">
-          <Link href="/matches" className="text-lg font-black">
+      <header className="app-header">
+        <div className="app-header-inner">
+          <Link href="/matches" className="brand-link">
             World Cup Bets
           </Link>
-          <nav className="flex flex-wrap items-center gap-2">
+          <nav className="app-nav">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-md px-3 py-2 text-sm font-bold ${
-                  pathname.startsWith(link.href) ? "bg-teal-700 text-white" : "text-stone-700"
-                }`}
+                className={`nav-link ${pathname.startsWith(link.href) ? "nav-link-active" : ""}`}
               >
                 {link.label}
               </Link>
             ))}
           </nav>
           {profile ? (
-            <div className="flex items-center gap-3 text-sm">
-              <span className="font-bold">{profile.displayName}</span>
+            <div className="account-strip">
+              <span className="account-name">{profile.displayName}</span>
               <button className="button secondary !py-2" onClick={logout}>
                 Sign out
               </button>

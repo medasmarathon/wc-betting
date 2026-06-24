@@ -1,6 +1,6 @@
 "use client"
 
-import { Alert, Card, Center, Loader, LoadingOverlay, Stack, Text } from "@mantine/core"
+import { Alert, Center, Loader, LoadingOverlay, Stack, Text } from "@mantine/core"
 import { useParams } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
@@ -29,8 +29,6 @@ type MatchDetail = {
   userBet?: {
     pick: BetPick
     stake: number
-    predictedHomeScore?: number
-    predictedAwayScore?: number
     potentialPayout: number
     payout: number
     fundContribution?: number
@@ -142,44 +140,48 @@ function MatchDetailContent() {
   }
 
   return (
-    <main className="page grid items-start gap-5 lg:grid-cols-[1fr_360px]">
-      <Card withBorder radius="md" p="lg" className="relative">
+    <main className="page grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <section className="panel relative p-4 sm:p-5">
         <LoadingOverlay visible={loading} loaderProps={{ "aria-label": "Refreshing match" }} />
         <Stack gap="lg">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-black">
-              <MatchupLabel
-                homeTeam={match.homeTeam}
-                awayTeam={match.awayTeam}
-                homeTeamCode={match.homeTeamCode}
-                awayTeamCode={match.awayTeamCode}
-              />
-            </h1>
-            <p className="mt-1 text-sm text-stone-600">
-              {[match.groupName, match.stage, formatKickoff(match.kickoffAt)].filter(Boolean).join(" • ")}
-            </p>
-          </div>
-          <StatusBadge status={match.status} />
-        </div>
-        {match.homeScore !== undefined && match.awayScore !== undefined ? (
-          <div className="rounded-md bg-stone-100 p-4">
-            <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
-              <TeamIdentity team={match.homeTeam} teamCode={match.homeTeamCode} className="font-black" />
-              <div className="text-2xl font-black tabular-nums">
-                {match.homeScore} - {match.awayScore}
-              </div>
-              <TeamIdentity team={match.awayTeam} teamCode={match.awayTeamCode} className="font-black sm:justify-self-end" />
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="page-title text-3xl font-black">
+                <MatchupLabel
+                  homeTeam={match.homeTeam}
+                  awayTeam={match.awayTeam}
+                  homeTeamCode={match.homeTeamCode}
+                  awayTeamCode={match.awayTeamCode}
+                />
+              </h1>
+              <p className="page-subtitle mt-1 text-sm">
+                {[match.groupName, match.stage, formatKickoff(match.kickoffAt)].filter(Boolean).join(" • ")}
+              </p>
             </div>
+            <StatusBadge status={match.status} />
           </div>
-        ) : null}
+          {match.homeScore !== undefined && match.awayScore !== undefined ? (
+            <div className="score-panel p-4">
+              <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+                <TeamIdentity team={match.homeTeam} teamCode={match.homeTeamCode} className="page-title font-black" />
+                <div className="page-title text-2xl font-black tabular-nums">
+                  {match.homeScore} - {match.awayScore}
+                </div>
+                <TeamIdentity
+                  team={match.awayTeam}
+                  teamCode={match.awayTeamCode}
+                  className="page-title font-black sm:justify-self-end"
+                />
+              </div>
+            </div>
+          ) : null}
         </Stack>
-      </Card>
-      <Card component="aside" withBorder radius="md" p="lg">
+      </section>
+      <aside className="panel p-4 sm:p-5">
         {match.userBet ? (
           <Stack gap="md">
             <div className="grid gap-2">
-              <h2 className="text-xl font-black">Your bet</h2>
+              <h2 className="page-title text-xl font-black">Your bet</h2>
               <p>
                 <b>{formatPickLabel(match.userBet.pick, match)}</b> for <b>{match.userBet.stake}</b> points
               </p>
@@ -199,11 +201,11 @@ function MatchDetailContent() {
         ) : match.isBettable ? (
           <BetForm key={`${match.id}-new`} match={match} onPlaced={load} />
         ) : (
-          <Text size="sm" c="dimmed">
+          <Text size="sm" className="text-subtle">
             Betting is closed for this match.
           </Text>
         )}
-      </Card>
+      </aside>
     </main>
   )
 }

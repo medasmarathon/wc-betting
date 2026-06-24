@@ -83,7 +83,7 @@ function AdminContent() {
   return (
     <main className="page grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-black">Admin</h1>
+        <h1 className="page-title text-3xl font-black">Admin</h1>
         <div className="flex flex-wrap gap-2">
           <button className="button secondary" type="button" onClick={triggerScheduleSync} disabled={scheduleSyncPending}>
             {scheduleSyncPending ? "Syncing..." : "Sync schedule"}
@@ -99,7 +99,7 @@ function AdminContent() {
       {scheduleSyncMessage ? <div className="panel p-3 text-sm">{scheduleSyncMessage}</div> : null}
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="panel p-4">
-          <h2 className="font-black">Matches needing action</h2>
+          <h2 className="page-title font-black">Matches needing action</h2>
           <div className="mt-3 grid gap-2">
             {matches
               .filter((match) => ["COMPLETED", "LOCKED"].includes(match.status))
@@ -113,7 +113,7 @@ function AdminContent() {
           </div>
         </div>
         <div className="panel p-4">
-          <h2 className="font-black">Users</h2>
+          <h2 className="page-title font-black">Users</h2>
           <div className="mt-3 grid gap-2 text-sm">
             {users.map((user) => (
               <div key={user.id} className="flex justify-between gap-2">
@@ -124,11 +124,11 @@ function AdminContent() {
           </div>
         </div>
         <div className="panel p-4">
-          <h2 className="font-black">Recent audit</h2>
+          <h2 className="page-title font-black">Recent audit</h2>
           <div className="mt-3 grid gap-2 text-sm">
             {logs.slice(0, 8).map((log) => (
               <div key={log.id}>
-                <b>{log.action}</b> <span className="text-stone-500">{log.actorEmail}</span>
+                <b>{log.action}</b> <span className="text-muted">{log.actorEmail}</span>
               </div>
             ))}
           </div>

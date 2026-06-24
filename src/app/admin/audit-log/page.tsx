@@ -33,8 +33,8 @@ function AdminAuditLogContent() {
 
   return (
     <main className="page grid gap-5">
-      <h1 className="text-3xl font-black">Audit log</h1>
-      <div className="panel overflow-x-auto">
+      <h1 className="page-title text-3xl font-black">Audit log</h1>
+      <div className="panel table-shell">
         <table className="table">
           <thead>
             <tr>
@@ -48,11 +48,11 @@ function AdminAuditLogContent() {
           <tbody>
             {logs.map((log) => (
               <tr key={log.id}>
-                <td>{log.createdAt ? formatKickoff(log.createdAt) : ""}</td>
-                <td>{log.actorEmail ?? "system"}</td>
-                <td className="font-bold">{log.action}</td>
-                <td>{log.entityType}</td>
-                <td>{log.entityId}</td>
+                <td data-label="Time">{log.createdAt ? formatKickoff(log.createdAt) : ""}</td>
+                <td data-label="Actor">{log.actorEmail ?? "system"}</td>
+                <td data-label="Action" className="page-title font-bold">{log.action}</td>
+                <td data-label="Entity">{log.entityType}</td>
+                <td data-label="ID">{log.entityId}</td>
               </tr>
             ))}
           </tbody>

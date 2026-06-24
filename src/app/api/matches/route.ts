@@ -2,7 +2,7 @@ import { handleRouteError, requireUser } from "@/lib/auth"
 import { isMatchBettableForUser } from "@/lib/betting"
 import { getAdminDb } from "@/lib/firebase/admin"
 import { lockExpiredOpenMatches } from "@/lib/schedule-sync"
-import { serializeDoc } from "@/lib/serialize"
+import { serializeBetDoc, serializeDoc } from "@/lib/serialize"
 import type { BetDoc, MatchDoc } from "@/types/betting"
 
 export async function GET(request: Request) {
@@ -28,17 +28,16 @@ export async function GET(request: Request) {
       })
       .map((doc) => {
         const data = doc.data() as MatchDoc
+        const userBet = betsByMatch.get(doc.id)
         return {
           ...serializeDoc(doc.id, data),
-          userBet: betsByMatch.has(doc.id)
-            ? serializeDoc(betsByMatch.get(doc.id)!.id, betsByMatch.get(doc.id)!.data())
-            : null,
+          userBet: userBet ? serializeBetDoc(userBet.id, userBet.data() as BetDoc) : null,
           isBettable: isMatchBettableForUser({
             nowMs: now,
             kickoffMs: data.kickoffAt.toMillis?.() ?? 0,
             matchStatus: data.status,
             teamsConfirmed: data.teamsConfirmed,
-            hasUserBet: betsByMatch.has(doc.id),
+            hasUserBet: Boolean(userBet),
           }),
         }
       })

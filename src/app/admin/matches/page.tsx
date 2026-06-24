@@ -86,9 +86,9 @@ function AdminMatchesContent() {
 
   return (
     <main className="page grid gap-5">
-      <h1 className="text-3xl font-black">Manage matches</h1>
+      <h1 className="page-title text-3xl font-black">Manage matches</h1>
       <form className="panel grid gap-3 p-4" onSubmit={createMatch}>
-        <h2 className="text-xl font-black">Create match</h2>
+        <h2 className="page-title text-xl font-black">Create match</h2>
         <div className="grid gap-3 md:grid-cols-2">
           <input className="field" placeholder="Home team" value={form.homeTeam} onChange={(event) => setForm({ ...form, homeTeam: event.target.value })} />
           <input className="field" placeholder="Away team" value={form.awayTeam} onChange={(event) => setForm({ ...form, awayTeam: event.target.value })} />
@@ -103,7 +103,7 @@ function AdminMatchesContent() {
           <input className="field" type="datetime-local" value={form.kickoffAt} onChange={(event) => setForm({ ...form, kickoffAt: event.target.value })} />
         </div>
         <button className="button w-fit">Create match</button>
-        {message ? <p className="text-sm text-stone-700">{message}</p> : null}
+        {message ? <p className="text-subtle text-sm">{message}</p> : null}
       </form>
       <div className="grid gap-4">
         {matches.map((match) => (
@@ -129,7 +129,7 @@ function AdminMatchRow({
     <article className="panel grid gap-3 p-4">
       <div className="flex flex-wrap justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black">
+          <h2 className="page-title text-xl font-black">
             <MatchupLabel
               homeTeam={match.homeTeam}
               awayTeam={match.awayTeam}
@@ -137,7 +137,7 @@ function AdminMatchRow({
               awayTeamCode={match.awayTeamCode}
             />
           </h2>
-          <p className="text-sm text-stone-600">
+          <p className="page-subtitle text-sm">
             {[match.groupName, match.stage, formatKickoff(match.kickoffAt)].filter(Boolean).join(" • ")}
           </p>
         </div>

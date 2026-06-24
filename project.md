@@ -135,7 +135,6 @@ The MVP should support:
   * HOME
   * DRAW
   * AWAY
-* Optional score prediction
 * Point-based wallet
 * Automatic locking at kickoff
 * Admin result entry
@@ -399,9 +398,6 @@ type BetDoc = {
   odds: number
   potentialPayout: number
 
-  predictedHomeScore?: number
-  predictedAwayScore?: number
-
   status: "PENDING" | "WON" | "LOST" | "VOIDED"
   payout: number
 
@@ -641,8 +637,6 @@ Input:
   matchId: string
   pick: "HOME" | "DRAW" | "AWAY"
   stake: number
-  predictedHomeScore?: number
-  predictedAwayScore?: number
 }
 ```
 

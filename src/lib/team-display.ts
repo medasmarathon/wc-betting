@@ -118,10 +118,6 @@ export function getPickTeam(pick: MaybePick, teams: MatchTeams) {
   return null
 }
 
-export function formatScoreLabel(side: "home" | "away", teams: MatchTeams) {
-  return `${side === "home" ? teams.homeTeam : teams.awayTeam} score`
-}
-
 export function getTeamInitials(team: string, fallbackCode?: string | null) {
   const words = team.match(/[A-Za-z0-9]+/g) ?? []
   if (!words.length) return normalizeTeamCode(fallbackCode)?.slice(0, 3) ?? "TBD"

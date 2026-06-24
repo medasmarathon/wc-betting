@@ -2,7 +2,7 @@ import { handleRouteError, requireUser } from "@/lib/auth"
 import { isMatchBettableForUser } from "@/lib/betting"
 import { getAdminDb } from "@/lib/firebase/admin"
 import { lockExpiredOpenMatches } from "@/lib/schedule-sync"
-import { serializeDoc } from "@/lib/serialize"
+import { serializeBetDoc, serializeDoc } from "@/lib/serialize"
 import type { BetDoc, MatchDoc } from "@/types/betting"
 
 type RouteContext = {
@@ -32,7 +32,7 @@ export async function GET(request: Request, context: RouteContext) {
     return Response.json({
       match: {
         ...serializeDoc(matchSnap.id, match),
-        userBet: userBet ? serializeDoc(betSnap.id, userBet) : null,
+        userBet: userBet ? serializeBetDoc(betSnap.id, userBet) : null,
         isBettable: isMatchBettableForUser({
           nowMs: now,
           kickoffMs: match.kickoffAt.toMillis?.() ?? 0,

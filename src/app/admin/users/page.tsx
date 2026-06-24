@@ -89,10 +89,10 @@ function AdminUsersContent() {
 
   return (
     <main className="page grid gap-5">
-      <h1 className="text-3xl font-black">Manage users</h1>
+      <h1 className="page-title text-3xl font-black">Manage users</h1>
       {message ? <div className="panel p-3 text-sm">{message}</div> : null}
       <section className="panel grid gap-3 p-4">
-        <h2 className="text-xl font-black">Invite user</h2>
+        <h2 className="page-title text-xl font-black">Invite user</h2>
         <form className="grid gap-2 md:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_140px_auto]" onSubmit={invite}>
           <input
             aria-label="Invite email"
@@ -151,12 +151,12 @@ function UserRow({
     <article className="panel grid gap-3 p-4">
       <div className="flex flex-wrap justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black">{user.displayName}</h2>
-          <p className="text-sm text-stone-600">
+          <h2 className="page-title text-xl font-black">{user.displayName}</h2>
+          <p className="page-subtitle text-sm">
             {user.email} • {user.role} • {user.isActive ? "active" : "inactive"}
           </p>
         </div>
-        <div className="text-2xl font-black">{user.balance} pts</div>
+        <div className="page-title text-2xl font-black">{user.balance} pts</div>
       </div>
       <div className="grid gap-2 md:grid-cols-[120px_1fr_auto_auto]">
         <input className="field" type="number" placeholder="Amount" value={amount} onChange={(event) => setAmount(event.target.value)} />

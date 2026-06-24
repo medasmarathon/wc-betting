@@ -9,8 +9,6 @@ export type PlaceBetInput = {
   matchId: string
   pick: BetPick
   stake: number
-  predictedHomeScore?: number
-  predictedAwayScore?: number
 }
 
 export function calculateResultPick(homeScore: number, awayScore: number): BetPick {
@@ -151,21 +149,13 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
     if (existingBetDoc) {
       tx.update(betRef, {
         ...betFields,
-        predictedHomeScore:
-          input.predictedHomeScore === undefined ? FieldValue.delete() : input.predictedHomeScore,
-        predictedAwayScore:
-          input.predictedAwayScore === undefined ? FieldValue.delete() : input.predictedAwayScore,
+        predictedHomeScore: FieldValue.delete(),
+        predictedAwayScore: FieldValue.delete(),
         updatedAt: savedAt,
       })
     } else {
       const betDoc: BetDoc = {
         ...betFields,
-        ...(input.predictedHomeScore === undefined
-          ? {}
-          : { predictedHomeScore: input.predictedHomeScore }),
-        ...(input.predictedAwayScore === undefined
-          ? {}
-          : { predictedAwayScore: input.predictedAwayScore }),
         placedAt: savedAt,
         updatedAt: savedAt,
       }
@@ -233,12 +223,6 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
             before: {
               pick: existingBetDoc.pick,
               stake: existingBetDoc.stake,
-              ...(existingBetDoc.predictedHomeScore === undefined
-                ? {}
-                : { predictedHomeScore: existingBetDoc.predictedHomeScore }),
-              ...(existingBetDoc.predictedAwayScore === undefined
-                ? {}
-                : { predictedAwayScore: existingBetDoc.predictedAwayScore }),
             },
           }
         : {}),
@@ -247,8 +231,6 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
         pick: input.pick,
         stake: input.stake,
         stakeDelta,
-        ...(input.predictedHomeScore === undefined ? {} : { predictedHomeScore: input.predictedHomeScore }),
-        ...(input.predictedAwayScore === undefined ? {} : { predictedAwayScore: input.predictedAwayScore }),
       },
       createdAt: FieldValue.serverTimestamp(),
     })

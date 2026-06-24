@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { DateFilter } from "@/components/date-filter"
+import { StatusBadge } from "@/components/status-badge"
 import { TeamIdentity } from "@/components/team-identity"
 import { formatPickLabel, teamsFromBet } from "@/lib/team-display"
 import { formatKickoff, formatLocalDateLabel, getLocalDateKey } from "@/lib/time"
@@ -63,8 +64,8 @@ function MyBetsContent() {
   return (
     <main className="page grid gap-5">
       <div>
-        <h1 className="text-3xl font-black">My bets</h1>
-        <p className="mt-1 text-sm text-stone-600">Track pending picks and settled party fund results.</p>
+        <h1 className="page-title text-3xl font-black">My bets</h1>
+        <p className="page-subtitle mt-1 text-sm">Track pending picks and settled party fund results.</p>
       </div>
       <DateFilter
         title="Match date"
@@ -84,8 +85,8 @@ function MyBetsContent() {
 function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: string }) {
   return (
     <section className="grid gap-3">
-      <h2 className="text-xl font-black">{title}</h2>
-      <div className="panel overflow-x-auto">
+      <h2 className="page-title text-xl font-black">{title}</h2>
+      <div className="panel table-shell">
         <table className="table">
           <thead>
             <tr>
@@ -107,28 +108,28 @@ function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: s
                 const teams = teamsFromBet(bet)
                 return (
                   <tr key={bet.id}>
-                    <td className="font-bold">
-                      <div className="grid min-w-[220px] gap-1">
+                    <td data-label="Match" className="page-title font-bold">
+                      <div className="grid min-w-0 gap-1">
                         <TeamIdentity team={teams.homeTeam} teamCode={teams.homeTeamCode} compact />
-                        <span className="text-xs font-bold uppercase text-stone-400">vs</span>
+                        <span className="text-muted text-xs font-bold uppercase">vs</span>
                         <TeamIdentity team={teams.awayTeam} teamCode={teams.awayTeamCode} compact />
                       </div>
                     </td>
-                    <td>{formatKickoff(bet.kickoffAt)}</td>
-                    <td>{formatPickLabel(bet.pick, teams)}</td>
-                    <td>{bet.stake}</td>
-                    <td>{formatResult(bet, teams)}</td>
-                    <td>{bet.status}</td>
-                    <td>{bet.placedAt ? formatKickoff(bet.placedAt) : ""}</td>
-                    <td>{bet.updatedAt ? formatKickoff(bet.updatedAt) : ""}</td>
-                    <td>{bet.payout}</td>
-                    <td>{bet.fundContribution ?? 0}</td>
+                    <td data-label="Kickoff">{formatKickoff(bet.kickoffAt)}</td>
+                    <td data-label="Pick">{formatPickLabel(bet.pick, teams)}</td>
+                    <td data-label="Stake">{bet.stake}</td>
+                    <td data-label="Result">{formatResult(bet, teams)}</td>
+                    <td data-label="Status"><StatusBadge status={bet.status} /></td>
+                    <td data-label="Placed">{bet.placedAt ? formatKickoff(bet.placedAt) : ""}</td>
+                    <td data-label="Updated">{bet.updatedAt ? formatKickoff(bet.updatedAt) : ""}</td>
+                    <td data-label="Refund">{bet.payout}</td>
+                    <td data-label="Fund">{bet.fundContribution ?? 0}</td>
                   </tr>
                 )
               })
             ) : (
               <tr>
-                <td colSpan={10} className="text-stone-600">
+                <td colSpan={10} className="table-empty text-subtle">
                   {empty}
                 </td>
               </tr>

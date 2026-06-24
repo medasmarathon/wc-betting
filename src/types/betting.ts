@@ -96,8 +96,6 @@ export type BetDoc = {
   stake: number
   potentialPayout: number
   fundContribution: number
-  predictedHomeScore?: number
-  predictedAwayScore?: number
   status: BetStatus
   payout: number
   placedAt: FirebaseDate

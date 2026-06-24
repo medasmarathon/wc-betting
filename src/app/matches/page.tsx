@@ -96,8 +96,8 @@ function MatchesContent() {
     <main className="page grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-black">Matches</h1>
-          <p className="mt-1 text-sm text-stone-600">Place or edit one pre-kickoff bet per match.</p>
+          <h1 className="page-title text-3xl font-black">Matches</h1>
+          <p className="page-subtitle mt-1 text-sm">Place or edit one pre-kickoff bet per match.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {MATCH_VIEWS.map((option) => (
@@ -116,7 +116,7 @@ function MatchesContent() {
         pluralLabel="matches"
         onSelectDate={selectDate}
       />
-      {error ? <div className="panel p-4 text-red-700">{error}</div> : null}
+      {error ? <div className="danger-text panel p-4">{error}</div> : null}
       {filteredMatches.length ? (
         <div className="grid items-start gap-4 md:grid-cols-2">
           {filteredMatches.map((match) => (
@@ -130,7 +130,7 @@ function MatchesContent() {
           ))}
         </div>
       ) : (
-        <div className="panel p-4 text-sm text-stone-600">
+        <div className="panel text-subtle p-4 text-sm">
           {selectedDateKey ? `No matches on ${selectedDateLabel} for this view.` : "No matches for this view."}
         </div>
       )}

@@ -13,8 +13,6 @@ export const placeBetSchema = z.object({
     .number()
     .int()
     .refine((value) => value === DEFAULT_BET_STAKE, `Stake must be exactly ${DEFAULT_BET_STAKE}`),
-  predictedHomeScore: z.coerce.number().int().min(0).max(99).optional(),
-  predictedAwayScore: z.coerce.number().int().min(0).max(99).optional(),
 })
 
 export const matchInputSchema = z.object({

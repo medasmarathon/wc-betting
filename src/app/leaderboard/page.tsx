@@ -32,10 +32,10 @@ function LeaderboardContent() {
   return (
     <main className="page grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-3xl font-black">Leaderboard</h1>
+        <h1 className="page-title text-3xl font-black">Leaderboard</h1>
         <div className="panel px-4 py-3">
-          <div className="text-sm font-bold text-stone-600">Party fund</div>
-          <div className="text-2xl font-black">{confirmedFundTotal}</div>
+          <div className="page-subtitle text-sm font-bold">Party fund</div>
+          <div className="page-title text-2xl font-black">{confirmedFundTotal}</div>
         </div>
       </div>
       <LeaderboardTable rows={rows} />
