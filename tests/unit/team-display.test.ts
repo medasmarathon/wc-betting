@@ -25,6 +25,10 @@ describe("formatPickLabel", () => {
   it("maps DRAW to Draw", () => {
     expect(formatPickLabel("DRAW", teams)).toBe("Draw")
   })
+
+  it("localizes DRAW to Vietnamese", () => {
+    expect(formatPickLabel("DRAW", teams, "vi")).toBe("Hòa")
+  })
 })
 
 describe("getFlagIconCode", () => {

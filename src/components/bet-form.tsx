@@ -3,8 +3,10 @@
 import { Button, Stack, Text } from "@mantine/core"
 import { useState } from "react"
 import { useAuth } from "@/components/auth-provider"
+import { useI18n } from "@/components/language-provider"
 import { TeamIdentity } from "@/components/team-identity"
 import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
+import { formatMessage, unitLabel } from "@/lib/i18n"
 import { formatPickLabel, getPickTeam } from "@/lib/team-display"
 import type { BetPick } from "@/types/betting"
 
@@ -27,6 +29,7 @@ type BetFormProps = {
 }
 
 export function BetForm({ match, onPlaced }: BetFormProps) {
+  const { locale, t } = useI18n()
   const { apiFetch } = useAuth()
   const isEditing = Boolean(match.userBet)
   const [pick, setPick] = useState<BetPick>(match.userBet?.pick ?? "HOME")
@@ -48,14 +51,14 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
       })
       const json = await response.json()
       if (!response.ok) {
-        setMessage(json.error ?? "Unable to save bet")
+        setMessage(json.error ?? t.bets.saveFailed)
         return
       }
-      const savedAction = json.action === "updated" || isEditing ? "updated" : "placed"
-      setMessage(`Bet ${savedAction} on ${formatPickLabel(pick, match)}.`)
+      const savedAction = json.action === "updated" || isEditing ? t.bets.updated : t.bets.placed
+      setMessage(formatMessage(t.bets.saved, { action: savedAction, pick: formatPickLabel(pick, match, locale) }))
       await onPlaced()
     } catch {
-      setMessage("Unable to save bet")
+      setMessage(t.bets.saveFailed)
     } finally {
       setPending(false)
     }
@@ -83,7 +86,7 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
                     <span className="draw-mark" aria-hidden="true">
                       D
                     </span>
-                    <span className="team-name">Draw</span>
+                    <span className="team-name">{t.common.draw}</span>
                   </span>
                 )}
               </button>
@@ -92,15 +95,15 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
         </div>
         <div className="bet-stake-card px-3 py-2">
           <Text size="sm" fw={700}>
-            Stake
+            {t.bets.stake}
           </Text>
-          <Text fw={800}>{DEFAULT_BET_STAKE} points</Text>
+          <Text fw={800}>{unitLabel(DEFAULT_BET_STAKE, locale)}</Text>
         </div>
         <Text size="sm" className="text-subtle">
-          If your pick is correct, your stake is refunded. If not, it goes into the party fund.
+          {t.bets.stakeNote}
         </Text>
         <Button type="submit" loading={pending}>
-          {isEditing ? "Save changes" : "Place bet"}
+          {isEditing ? t.bets.save : t.bets.place}
         </Button>
         {message ? (
           <Text size="sm" className="text-subtle">

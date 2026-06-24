@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
+import { useI18n } from "@/components/language-provider"
 import { StatusBadge } from "@/components/status-badge"
 import { MatchupLabel } from "@/components/team-identity"
 import { formatKickoff } from "@/lib/time"
@@ -121,6 +122,7 @@ function AdminMatchRow({
   match: Match
   action: (path: string, body?: object) => Promise<void>
 }) {
+  const { locale, t } = useI18n()
   const [homeScore, setHomeScore] = useState(match.homeScore?.toString() ?? "")
   const [awayScore, setAwayScore] = useState(match.awayScore?.toString() ?? "")
   const [resultPick, setResultPick] = useState(match.resultPick ?? "")
@@ -138,7 +140,7 @@ function AdminMatchRow({
             />
           </h2>
           <p className="page-subtitle text-sm">
-            {[match.groupName, match.stage, formatKickoff(match.kickoffAt)].filter(Boolean).join(" • ")}
+            {[match.groupName, match.stage, formatKickoff(match.kickoffAt, locale)].filter(Boolean).join(" • ")}
           </p>
         </div>
         <StatusBadge status={match.status} />
@@ -149,7 +151,7 @@ function AdminMatchRow({
         <select className="field" value={resultPick} onChange={(event) => setResultPick(event.target.value)}>
           <option value="">Auto result</option>
           <option value="HOME">{match.homeTeam} wins</option>
-          <option value="DRAW">Draw</option>
+          <option value="DRAW">{t.common.draw}</option>
           <option value="AWAY">{match.awayTeam} wins</option>
         </select>
         <div className="flex flex-wrap gap-2">

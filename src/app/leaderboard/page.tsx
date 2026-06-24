@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { LeaderboardTable } from "@/components/leaderboard-table"
+import { useI18n } from "@/components/language-provider"
+import { unitLabel } from "@/lib/i18n"
 
 export default function LeaderboardPage() {
   return (
@@ -13,6 +15,7 @@ export default function LeaderboardPage() {
 }
 
 function LeaderboardContent() {
+  const { locale, t } = useI18n()
   const { apiFetch } = useAuth()
   const [rows, setRows] = useState([])
   const [confirmedFundTotal, setConfirmedFundTotal] = useState(0)
@@ -32,10 +35,10 @@ function LeaderboardContent() {
   return (
     <main className="page grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="page-title text-3xl font-black">Leaderboard</h1>
+        <h1 className="page-title text-3xl font-black">{t.leaderboard.title}</h1>
         <div className="panel px-4 py-3">
-          <div className="page-subtitle text-sm font-bold">Party fund</div>
-          <div className="page-title text-2xl font-black">{confirmedFundTotal}</div>
+          <div className="page-subtitle text-sm font-bold">{t.leaderboard.partyFund}</div>
+          <div className="page-title text-2xl font-black">{unitLabel(confirmedFundTotal, locale)}</div>
         </div>
       </div>
       <LeaderboardTable rows={rows} />

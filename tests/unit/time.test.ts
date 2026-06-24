@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { DEFAULT_LOCALE, INTL_LOCALES } from "@/lib/i18n"
 import { addDaysToLocalDateKey, formatKickoff, getLocalDateKey } from "@/lib/time"
 
 describe("time helpers", () => {
@@ -17,7 +18,7 @@ describe("time helpers", () => {
 
   it("formats kickoff with the local timezone label", () => {
     const kickoff = "2026-06-23T18:30:00.000Z"
-    const expected = new Intl.DateTimeFormat(undefined, {
+    const expected = new Intl.DateTimeFormat(INTL_LOCALES[DEFAULT_LOCALE], {
       month: "short",
       day: "numeric",
       year: "numeric",

@@ -110,7 +110,7 @@ export async function ensureProfile(decoded: DecodedIdToken): Promise<AuthedUser
       type: "INITIAL_CREDIT",
       amount: 1000,
       balanceAfter: 1000,
-      description: "Initial local points balance",
+      description: "Initial unit balance",
       createdAt: FieldValue.serverTimestamp(),
     })
     tx.set(db.collection("leaderboard").doc(decoded.uid), {

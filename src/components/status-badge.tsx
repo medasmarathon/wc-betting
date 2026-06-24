@@ -1,6 +1,12 @@
+"use client"
+
 import clsx from "clsx"
+import { useI18n } from "@/components/language-provider"
+import { statusLabel } from "@/lib/i18n"
 
 export function StatusBadge({ status }: { status: string }) {
+  const { locale } = useI18n()
+
   return (
     <span
       className={clsx(
@@ -16,7 +22,7 @@ export function StatusBadge({ status }: { status: string }) {
                 : "status-neutral",
       )}
     >
-      {status}
+      {statusLabel(status, locale)}
     </span>
   )
 }

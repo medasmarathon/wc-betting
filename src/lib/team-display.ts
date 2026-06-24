@@ -1,4 +1,5 @@
 import type { BetPick } from "@/types/betting"
+import { DEFAULT_LOCALE, messages, pickLabel, type Locale } from "@/lib/i18n"
 
 export type MatchTeams = {
   homeTeam: string
@@ -105,11 +106,8 @@ export function getFlagIconCode(teamCode?: string | null) {
   return normalized ? FIFA_FLAG_CODES[normalized] : undefined
 }
 
-export function formatPickLabel(pick: MaybePick, teams: MatchTeams) {
-  if (pick === "HOME") return teams.homeTeam
-  if (pick === "AWAY") return teams.awayTeam
-  if (pick === "DRAW") return "Draw"
-  return pick ?? "TBD"
+export function formatPickLabel(pick: MaybePick, teams: MatchTeams, locale: Locale = DEFAULT_LOCALE) {
+  return pickLabel(pick, teams, locale)
 }
 
 export function getPickTeam(pick: MaybePick, teams: MatchTeams) {
@@ -129,11 +127,11 @@ export function getTeamInitials(team: string, fallbackCode?: string | null) {
     .toUpperCase()
 }
 
-export function teamsFromBet<T extends Partial<MatchTeams> & { matchLabel?: string }>(bet: T): MatchTeams {
+export function teamsFromBet<T extends Partial<MatchTeams> & { matchLabel?: string }>(bet: T, locale: Locale = DEFAULT_LOCALE): MatchTeams {
   const [labelHome, labelAway] = splitMatchLabel(bet.matchLabel)
   return {
-    homeTeam: bet.homeTeam ?? labelHome ?? "Home team",
-    awayTeam: bet.awayTeam ?? labelAway ?? "Away team",
+    homeTeam: bet.homeTeam ?? labelHome ?? messages[locale].common.homeTeam,
+    awayTeam: bet.awayTeam ?? labelAway ?? messages[locale].common.awayTeam,
     homeTeamCode: bet.homeTeamCode,
     awayTeamCode: bet.awayTeamCode,
   }

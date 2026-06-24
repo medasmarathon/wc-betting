@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { DateFilter } from "@/components/date-filter"
+import { useI18n } from "@/components/language-provider"
 import { StatusBadge } from "@/components/status-badge"
 import { TeamIdentity } from "@/components/team-identity"
+import { formatMessage, statusLabel, unitLabel, type Locale } from "@/lib/i18n"
 import { formatPickLabel, teamsFromBet } from "@/lib/team-display"
 import { formatKickoff, formatLocalDateLabel, getLocalDateKey } from "@/lib/time"
 import type { BetPick } from "@/types/betting"
@@ -40,6 +42,7 @@ export default function MyBetsPage() {
 }
 
 function MyBetsContent() {
+  const { locale, t } = useI18n()
   const { apiFetch } = useAuth()
   const [bets, setBets] = useState<Bet[]>([])
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(() => getLocalDateKey(new Date()))
@@ -56,7 +59,9 @@ function MyBetsContent() {
 
     return bets.filter((bet) => getLocalDateKey(bet.kickoffAt) === selectedDateKey)
   }, [bets, selectedDateKey])
-  const dateEmptySuffix = selectedDateKey ? ` on ${formatLocalDateLabel(selectedDateKey)}` : ""
+  const dateEmptySuffix = selectedDateKey
+    ? formatMessage(t.bets.onDate, { date: formatLocalDateLabel(selectedDateKey, locale) })
+    : ""
 
   const pendingBets = filteredBets.filter((bet) => bet.status === "PENDING")
   const previousBets = filteredBets.filter((bet) => bet.status !== "PENDING")
@@ -64,25 +69,27 @@ function MyBetsContent() {
   return (
     <main className="page grid gap-5">
       <div>
-        <h1 className="page-title text-3xl font-black">My bets</h1>
-        <p className="page-subtitle mt-1 text-sm">Track pending picks and settled party fund results.</p>
+        <h1 className="page-title text-3xl font-black">{t.myBets.title}</h1>
+        <p className="page-subtitle mt-1 text-sm">{t.myBets.subtitle}</p>
       </div>
       <DateFilter
-        title="Match date"
+        title={t.matches.dateTitle}
         selectedDateKey={selectedDateKey}
         todayDateKey={todayDateKey}
         count={filteredBets.length}
-        singularLabel="bet"
-        pluralLabel="bets"
+        singularLabel={t.table.bets.toLowerCase()}
+        pluralLabel={t.table.bets.toLowerCase()}
         onSelectDate={setSelectedDateKey}
       />
-      <BetTable title="Upcoming bets" bets={pendingBets} empty={`No pending bets${dateEmptySuffix}.`} />
-      <BetTable title="Previous bets" bets={previousBets} empty={`No settled bets${dateEmptySuffix}.`} />
+      <BetTable title={t.bets.pendingTitle} bets={pendingBets} empty={formatMessage(t.bets.emptyPending, { suffix: dateEmptySuffix })} />
+      <BetTable title={t.bets.previousTitle} bets={previousBets} empty={formatMessage(t.bets.emptySettled, { suffix: dateEmptySuffix })} />
     </main>
   )
 }
 
 function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: string }) {
+  const { locale, t } = useI18n()
+
   return (
     <section className="grid gap-3">
       <h2 className="page-title text-xl font-black">{title}</h2>
@@ -90,40 +97,40 @@ function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: s
         <table className="table">
           <thead>
             <tr>
-              <th>Match</th>
-              <th>Kickoff</th>
-              <th>Pick</th>
-              <th>Stake</th>
-              <th>Result</th>
-              <th>Status</th>
-              <th>Placed</th>
-              <th>Updated</th>
-              <th>Refund</th>
-              <th>Fund</th>
+              <th>{t.table.match}</th>
+              <th>{t.table.kickoff}</th>
+              <th>{t.table.pick}</th>
+              <th>{t.table.stake}</th>
+              <th>{t.table.result}</th>
+              <th>{t.table.status}</th>
+              <th>{t.table.placed}</th>
+              <th>{t.table.updated}</th>
+              <th>{t.table.refund}</th>
+              <th>{t.table.fund}</th>
             </tr>
           </thead>
           <tbody>
             {bets.length ? (
               bets.map((bet) => {
-                const teams = teamsFromBet(bet)
+                const teams = teamsFromBet(bet, locale)
                 return (
                   <tr key={bet.id}>
-                    <td data-label="Match" className="page-title font-bold">
+                    <td data-label={t.table.match} className="page-title font-bold">
                       <div className="grid min-w-0 gap-1">
                         <TeamIdentity team={teams.homeTeam} teamCode={teams.homeTeamCode} compact />
                         <span className="text-muted text-xs font-bold uppercase">vs</span>
                         <TeamIdentity team={teams.awayTeam} teamCode={teams.awayTeamCode} compact />
                       </div>
                     </td>
-                    <td data-label="Kickoff">{formatKickoff(bet.kickoffAt)}</td>
-                    <td data-label="Pick">{formatPickLabel(bet.pick, teams)}</td>
-                    <td data-label="Stake">{bet.stake}</td>
-                    <td data-label="Result">{formatResult(bet, teams)}</td>
-                    <td data-label="Status"><StatusBadge status={bet.status} /></td>
-                    <td data-label="Placed">{bet.placedAt ? formatKickoff(bet.placedAt) : ""}</td>
-                    <td data-label="Updated">{bet.updatedAt ? formatKickoff(bet.updatedAt) : ""}</td>
-                    <td data-label="Refund">{bet.payout}</td>
-                    <td data-label="Fund">{bet.fundContribution ?? 0}</td>
+                    <td data-label={t.table.kickoff}>{formatKickoff(bet.kickoffAt, locale)}</td>
+                    <td data-label={t.table.pick}>{formatPickLabel(bet.pick, teams, locale)}</td>
+                    <td data-label={t.table.stake}>{unitLabel(bet.stake, locale)}</td>
+                    <td data-label={t.table.result}>{formatResult(bet, teams, locale, t.common.tbd)}</td>
+                    <td data-label={t.table.status}><StatusBadge status={bet.status} /></td>
+                    <td data-label={t.table.placed}>{bet.placedAt ? formatKickoff(bet.placedAt, locale) : ""}</td>
+                    <td data-label={t.table.updated}>{bet.updatedAt ? formatKickoff(bet.updatedAt, locale) : ""}</td>
+                    <td data-label={t.table.refund}>{unitLabel(bet.payout, locale)}</td>
+                    <td data-label={t.table.fund}>{unitLabel(bet.fundContribution ?? 0, locale)}</td>
                   </tr>
                 )
               })
@@ -141,8 +148,8 @@ function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: s
   )
 }
 
-function formatResult(bet: Bet, teams: ReturnType<typeof teamsFromBet>) {
-  if (bet.homeScore === undefined || bet.awayScore === undefined) return bet.matchStatus ?? "TBD"
-  const winner = bet.resultPick ? ` (${formatPickLabel(bet.resultPick, teams)})` : ""
+function formatResult(bet: Bet, teams: ReturnType<typeof teamsFromBet>, locale: Locale, tbd: string) {
+  if (bet.homeScore === undefined || bet.awayScore === undefined) return bet.matchStatus ? statusLabel(bet.matchStatus, locale) : tbd
+  const winner = bet.resultPick ? ` (${formatPickLabel(bet.resultPick, teams, locale)})` : ""
   return `${bet.homeScore} - ${bet.awayScore}${winner}`
 }

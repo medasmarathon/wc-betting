@@ -1,4 +1,5 @@
 import type { FirebaseDate } from "@/types/betting"
+import { DEFAULT_LOCALE, INTL_LOCALES, type Locale } from "@/lib/i18n"
 
 export function toDate(value: FirebaseDate | Date | string | number): Date {
   if (value instanceof Date) return value
@@ -15,8 +16,8 @@ export function toIso(value: FirebaseDate | Date | string | number | undefined):
   return toDate(value).toISOString()
 }
 
-export function formatKickoff(value: FirebaseDate | Date | string | number): string {
-  return new Intl.DateTimeFormat(undefined, {
+export function formatKickoff(value: FirebaseDate | Date | string | number, locale: Locale = DEFAULT_LOCALE): string {
+  return new Intl.DateTimeFormat(INTL_LOCALES[locale], {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -42,8 +43,8 @@ export function addDaysToLocalDateKey(dateKey: string, days: number): string {
   return getLocalDateKey(date)
 }
 
-export function formatLocalDateLabel(dateKey: string): string {
-  return new Intl.DateTimeFormat(undefined, {
+export function formatLocalDateLabel(dateKey: string, locale: Locale = DEFAULT_LOCALE): string {
+  return new Intl.DateTimeFormat(INTL_LOCALES[locale], {
     weekday: "short",
     month: "short",
     day: "numeric",

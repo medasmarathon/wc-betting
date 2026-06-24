@@ -1,6 +1,7 @@
 import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
 import { getAdminDb } from "@/lib/firebase/admin"
+import { DEFAULT_LOCALE, formatMessage, messages, unitLabel, type Locale } from "@/lib/i18n"
 import type { AuthedUser } from "@/lib/auth"
 import { HttpError } from "@/lib/auth"
 import type { BetDoc, BetPick, MatchDoc, UserDoc } from "@/types/betting"
@@ -9,6 +10,7 @@ export type PlaceBetInput = {
   matchId: string
   pick: BetPick
   stake: number
+  locale?: Locale
 }
 
 export function calculateResultPick(homeScore: number, awayScore: number): BetPick {
@@ -38,11 +40,13 @@ export function canMatchAcceptNewBet(params: {
   kickoffMs: number
   matchStatus: string
   teamsConfirmed?: boolean
+  locale?: Locale
 }) {
-  if (params.teamsConfirmed === false) return { ok: false, reason: "Teams are not confirmed for this match" }
-  if (params.nowMs >= params.kickoffMs) return { ok: false, reason: "Betting is locked for this match" }
+  const t = messages[params.locale ?? DEFAULT_LOCALE]
+  if (params.teamsConfirmed === false) return { ok: false, reason: t.errors.teamsUnconfirmed }
+  if (params.nowMs >= params.kickoffMs) return { ok: false, reason: t.errors.bettingLocked }
   if (!["SCHEDULED", "OPEN"].includes(params.matchStatus)) {
-    return { ok: false, reason: "This match is not open for betting" }
+    return { ok: false, reason: t.errors.matchNotOpen }
   }
   return { ok: true, reason: undefined }
 }
@@ -53,6 +57,7 @@ export function isMatchBettableForUser(params: {
   matchStatus: string
   teamsConfirmed?: boolean
   hasUserBet?: boolean
+  locale?: Locale
 }) {
   return canMatchAcceptNewBet(params).ok
 }
@@ -65,18 +70,21 @@ export function canPlaceBet(params: {
   userBalance: number
   stake: number
   existingBet?: Pick<BetDoc, "stake" | "status"> | null
+  locale?: Locale
 }) {
+  const locale = params.locale ?? DEFAULT_LOCALE
+  const t = messages[locale]
   const matchAllowed = canMatchAcceptNewBet(params)
   if (!matchAllowed.ok) return matchAllowed
   if (params.stake !== DEFAULT_BET_STAKE) {
-    return { ok: false, reason: `Stake must be exactly ${DEFAULT_BET_STAKE}` }
+    return { ok: false, reason: formatMessage(t.errors.stakeExact, { amount: unitLabel(DEFAULT_BET_STAKE, locale) }) }
   }
   if (params.existingBet && params.existingBet.status !== "PENDING") {
-    return { ok: false, reason: "Only pending bets can be edited" }
+    return { ok: false, reason: t.errors.editPendingOnly }
   }
   const existingStake = params.existingBet?.stake ?? 0
   const additionalStake = Math.max(0, params.stake - existingStake)
-  if (params.userBalance < additionalStake) return { ok: false, reason: "Insufficient balance" }
+  if (params.userBalance < additionalStake) return { ok: false, reason: t.errors.insufficientBalance }
   return { ok: true, reason: undefined }
 }
 
@@ -90,6 +98,8 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
   const stakeAdjustmentTxRef = db.collection("walletTransactions").doc()
   const leaderboardRef = db.collection("leaderboard").doc(user.uid)
   const auditRef = db.collection("auditLogs").doc()
+  const locale = input.locale ?? DEFAULT_LOCALE
+  const t = messages[locale]
 
   const action = await db.runTransaction<"placed" | "updated">(async (tx) => {
     const [userSnap, matchSnap, existingBet] = await Promise.all([
@@ -98,8 +108,8 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
       tx.get(betRef),
     ])
 
-    if (!userSnap.exists) throw new HttpError(404, "User profile not found")
-    if (!matchSnap.exists) throw new HttpError(404, "Match not found")
+    if (!userSnap.exists) throw new HttpError(404, t.errors.userNotFound)
+    if (!matchSnap.exists) throw new HttpError(404, t.errors.matchNotFound)
 
     const userDoc = userSnap.data() as UserDoc
     const match = matchSnap.data() as MatchDoc
@@ -113,6 +123,7 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
       teamsConfirmed: match.teamsConfirmed,
       userBalance: userDoc.balance,
       stake: input.stake,
+      locale,
       existingBet: existingBetDoc ? { stake: existingBetDoc.stake, status: existingBetDoc.status } : null,
     })
 

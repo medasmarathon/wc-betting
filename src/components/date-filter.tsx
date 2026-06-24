@@ -1,5 +1,6 @@
 "use client"
 
+import { useI18n } from "@/components/language-provider"
 import { addDaysToLocalDateKey, formatLocalDateLabel } from "@/lib/time"
 
 type DateFilterProps = {
@@ -21,10 +22,11 @@ export function DateFilter({
   pluralLabel,
   onSelectDate,
 }: DateFilterProps) {
+  const { locale, t } = useI18n()
   const anchorDateKey = selectedDateKey ?? todayDateKey
   const previousDateKey = addDaysToLocalDateKey(anchorDateKey, -1)
   const nextDateKey = addDaysToLocalDateKey(anchorDateKey, 1)
-  const selectedDateLabel = selectedDateKey ? formatLocalDateLabel(selectedDateKey) : "All dates"
+  const selectedDateLabel = selectedDateKey ? formatLocalDateLabel(selectedDateKey, locale) : t.common.allDates
 
   return (
     <section className="panel grid gap-4 p-3">
@@ -35,34 +37,38 @@ export function DateFilter({
         </p>
       </div>
       <div className="date-filter-actions">
-        <button type="button" className={`button whitespace-nowrap ${selectedDateKey ? "secondary" : ""}`} onClick={() => onSelectDate(null)}>
-          All dates
-        </button>
-        <button type="button" className={`button whitespace-nowrap ${selectedDateKey === todayDateKey ? "" : "secondary"}`} onClick={() => onSelectDate(todayDateKey)}>
-          Today
-        </button>
-        <button type="button" className="button secondary whitespace-nowrap" onClick={() => onSelectDate(previousDateKey)}>
-          {formatLocalDateLabel(previousDateKey)}
-        </button>
-        <button type="button" className="button date-filter-current whitespace-nowrap" onClick={() => onSelectDate(anchorDateKey)}>
-          <span className="grid gap-0.5 text-left">
-            <span className="text-xs font-black uppercase leading-none">Selected</span>
-            <span>{formatLocalDateLabel(anchorDateKey)}</span>
-          </span>
-        </button>
-        <button type="button" className="button secondary whitespace-nowrap" onClick={() => onSelectDate(nextDateKey)}>
-          {formatLocalDateLabel(nextDateKey)}
-        </button>
-        <label className="button secondary date-picker-button" aria-label="Choose match date">
-          <span aria-hidden="true">📅</span>
-          <input
-            type="date"
-            value={selectedDateKey ?? ""}
-            onChange={(event) => {
-              if (event.target.value) onSelectDate(event.target.value)
-            }}
-          />
-        </label>
+        <div className="date-filter-quick">
+          <button type="button" className={`button whitespace-nowrap ${selectedDateKey ? "secondary" : ""}`} onClick={() => onSelectDate(null)}>
+            {t.common.allDates}
+          </button>
+          <button type="button" className={`button whitespace-nowrap ${selectedDateKey === todayDateKey ? "" : "secondary"}`} onClick={() => onSelectDate(todayDateKey)}>
+            {t.common.today}
+          </button>
+          <label className="button secondary date-picker-button" aria-label={t.common.chooseDate}>
+            <span aria-hidden="true">📅</span>
+            <input
+              type="date"
+              value={selectedDateKey ?? ""}
+              onChange={(event) => {
+                if (event.target.value) onSelectDate(event.target.value)
+              }}
+            />
+          </label>
+        </div>
+        <div className="date-filter-stepper" aria-label={t.common.dateNavigation}>
+          <button type="button" className="button secondary whitespace-nowrap" onClick={() => onSelectDate(previousDateKey)}>
+            {t.common.previous}
+          </button>
+          <button type="button" className="button date-filter-current whitespace-nowrap" onClick={() => onSelectDate(anchorDateKey)}>
+            <span className="grid gap-0.5 text-left">
+              <span className="text-xs font-black uppercase leading-none">{t.common.selected}</span>
+              <span>{formatLocalDateLabel(anchorDateKey, locale)}</span>
+            </span>
+          </button>
+          <button type="button" className="button secondary whitespace-nowrap" onClick={() => onSelectDate(nextDateKey)}>
+            {t.common.next}
+          </button>
+        </div>
       </div>
     </section>
   )

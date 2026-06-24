@@ -260,6 +260,41 @@ select {
   font-size: 14px;
 }
 
+.language-switch {
+  display: inline-flex;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+
+.language-switch-option {
+  min-height: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 7px 9px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.language-switch-option:hover {
+  background: var(--control-background);
+  color: var(--text-primary);
+}
+
+.language-switch-option:focus-visible {
+  outline: 3px solid var(--control-focus);
+  outline-offset: -3px;
+}
+
+.language-switch-option[aria-pressed="true"] {
+  background: var(--accent);
+  color: #fff;
+}
+
 .account-name {
   min-width: 0;
   overflow: hidden;
@@ -301,6 +336,12 @@ select {
 }
 
 .date-filter-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.date-filter-quick,
+.date-filter-stepper {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -309,8 +350,18 @@ select {
   scrollbar-width: thin;
 }
 
-.date-filter-actions > * {
+.date-filter-quick > *,
+.date-filter-stepper > * {
   flex: 0 0 auto;
+}
+
+.date-filter-stepper {
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  padding: 8px;
 }
 
 .date-filter-current {

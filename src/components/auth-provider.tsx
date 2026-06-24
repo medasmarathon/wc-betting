@@ -12,6 +12,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { auth } from "@/lib/firebase/client"
+import { LanguageSwitch, useI18n } from "@/components/language-provider"
 
 type Profile = {
   uid: string
@@ -35,6 +36,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { locale } = useI18n()
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -45,10 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = await auth.currentUser?.getIdToken()
       const headers = new Headers(init.headers)
       if (token) headers.set("authorization", `Bearer ${token}`)
+      headers.set("x-locale", locale)
       if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json")
       return fetch(input, { ...init, headers })
     },
-    [],
+    [locale],
   )
 
   async function loadProfileForUser(nextUser: User) {
@@ -120,6 +123,7 @@ export function useAuth() {
 }
 
 export function AuthGate({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
+  const { t } = useI18n()
   const { firebaseUser, profile, loading, error } = useAuth()
   const router = useRouter()
 
@@ -131,7 +135,7 @@ export function AuthGate({ children, adminOnly = false }: { children: React.Reac
     return (
       <main className="page">
         <Center py="xl">
-          <Loader aria-label="Loading profile" />
+          <Loader aria-label={t.auth.loadingProfile} />
         </Center>
       </main>
     )
@@ -149,7 +153,7 @@ export function AuthGate({ children, adminOnly = false }: { children: React.Reac
     return (
       <main className="page">
         <Center py="xl">
-          <Loader aria-label="Redirecting" />
+          <Loader aria-label={t.auth.redirecting} />
         </Center>
       </main>
     )
@@ -158,7 +162,7 @@ export function AuthGate({ children, adminOnly = false }: { children: React.Reac
     return (
       <main className="page">
         <Alert color="red" variant="light">
-          Admin access required.
+          {t.auth.adminRequired}
         </Alert>
       </main>
     )
@@ -167,13 +171,14 @@ export function AuthGate({ children, adminOnly = false }: { children: React.Reac
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n()
   const { profile, logout } = useAuth()
   const pathname = usePathname()
   const links = [
-    { href: "/matches", label: "Matches" },
-    { href: "/my-bets", label: "My bets" },
-    { href: "/leaderboard", label: "Leaderboard" },
-    ...(profile?.role === "ADMIN" ? [{ href: "/admin", label: "Admin" }] : []),
+    { href: "/matches", label: t.nav.matches },
+    { href: "/my-bets", label: t.nav.myBets },
+    { href: "/leaderboard", label: t.nav.leaderboard },
+    ...(profile?.role === "ADMIN" ? [{ href: "/admin", label: t.nav.admin }] : []),
   ]
 
   if (pathname === "/login") return <>{children}</>
@@ -198,9 +203,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
           {profile ? (
             <div className="account-strip">
+              <LanguageSwitch />
               <span className="account-name">{profile.displayName}</span>
               <button className="button secondary !py-2" onClick={logout}>
-                Sign out
+                {t.auth.signOut}
               </button>
             </div>
           ) : null}
@@ -213,6 +219,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 function AppBackButton() {
+  const { t } = useI18n()
   const pathname = usePathname()
   const router = useRouter()
   const currentPathRef = useRef<string | null>(null)
@@ -230,7 +237,7 @@ function AppBackButton() {
   return (
     <div className="app-back-bar">
       <button className="app-back-button" type="button" onClick={() => router.back()}>
-        &lt; Back
+        &lt; {t.nav.back}
       </button>
     </div>
   )

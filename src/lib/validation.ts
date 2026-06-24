@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
+import { DEFAULT_LOCALE, formatMessage, messages, unitLabel } from "@/lib/i18n"
 
 const optionalDisplayNameSchema = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
@@ -12,7 +13,10 @@ export const placeBetSchema = z.object({
   stake: z.coerce
     .number()
     .int()
-    .refine((value) => value === DEFAULT_BET_STAKE, `Stake must be exactly ${DEFAULT_BET_STAKE}`),
+    .refine(
+      (value) => value === DEFAULT_BET_STAKE,
+      formatMessage(messages[DEFAULT_LOCALE].errors.stakeExact, { amount: unitLabel(DEFAULT_BET_STAKE) }),
+    ),
 })
 
 export const matchInputSchema = z.object({

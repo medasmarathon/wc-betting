@@ -83,7 +83,11 @@ describe("canPlaceBet", () => {
   })
 
   it("blocks non-default stakes", () => {
-    expect(canPlaceBet({ ...base, stake: DEFAULT_BET_STAKE + 1 }).reason).toMatch(/exactly 10/i)
+    expect(canPlaceBet({ ...base, stake: DEFAULT_BET_STAKE + 1 }).reason).toMatch(/10 points/i)
+  })
+
+  it("localizes bet rule errors when requested", () => {
+    expect(canPlaceBet({ ...base, stake: DEFAULT_BET_STAKE + 1, locale: "vi" }).reason).toMatch(/10 đơn vị/i)
   })
 
   it("allows editing older pending bets while resetting stake to the default", () => {
