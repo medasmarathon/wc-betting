@@ -38,6 +38,9 @@ export function DateFilter({
         <button type="button" className={`button whitespace-nowrap ${selectedDateKey ? "secondary" : ""}`} onClick={() => onSelectDate(null)}>
           All dates
         </button>
+        <button type="button" className={`button whitespace-nowrap ${selectedDateKey === todayDateKey ? "" : "secondary"}`} onClick={() => onSelectDate(todayDateKey)}>
+          Today
+        </button>
         <button type="button" className="button secondary whitespace-nowrap" onClick={() => onSelectDate(previousDateKey)}>
           {formatLocalDateLabel(previousDateKey)}
         </button>

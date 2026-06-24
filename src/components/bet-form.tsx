@@ -1,6 +1,6 @@
 "use client"
 
-import { Button, Group, NumberInput, SegmentedControl, Stack, Text, TextInput } from "@mantine/core"
+import { Button, Group, SegmentedControl, Stack, Text, TextInput } from "@mantine/core"
 import { useState } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { TeamIdentity } from "@/components/team-identity"
@@ -32,7 +32,6 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
   const { apiFetch } = useAuth()
   const isEditing = Boolean(match.userBet)
   const [pick, setPick] = useState<BetPick>(match.userBet?.pick ?? "HOME")
-  const [stake, setStake] = useState(match.userBet?.stake ?? DEFAULT_BET_STAKE)
   const [predictedHomeScore, setPredictedHomeScore] = useState(
     match.userBet?.predictedHomeScore?.toString() ?? "",
   )
@@ -52,7 +51,7 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
         body: JSON.stringify({
           matchId: match.id,
           pick,
-          stake,
+          stake: DEFAULT_BET_STAKE,
           predictedHomeScore: predictedHomeScore === "" ? undefined : Number(predictedHomeScore),
           predictedAwayScore: predictedAwayScore === "" ? undefined : Number(predictedAwayScore),
         }),
@@ -97,7 +96,12 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
             }
           })}
         />
-        <NumberInput label="Stake" min={1} value={stake} disabled={pending} onChange={(value) => setStake(Number(value) || 0)} />
+        <div className="rounded-md border border-[var(--line)] bg-stone-50 px-3 py-2">
+          <Text size="sm" fw={700}>
+            Stake
+          </Text>
+          <Text fw={800}>{DEFAULT_BET_STAKE} points</Text>
+        </div>
         <Text size="sm" c="dimmed">
           If your pick is correct, your stake is refunded. If not, it goes into the party fund.
         </Text>

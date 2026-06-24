@@ -1,4 +1,5 @@
 import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
+import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
 import { getAdminDb } from "@/lib/firebase/admin"
 import type { AuthedUser } from "@/lib/auth"
 import { HttpError } from "@/lib/auth"
@@ -69,6 +70,9 @@ export function canPlaceBet(params: {
 }) {
   const matchAllowed = canMatchAcceptNewBet(params)
   if (!matchAllowed.ok) return matchAllowed
+  if (params.stake !== DEFAULT_BET_STAKE) {
+    return { ok: false, reason: `Stake must be exactly ${DEFAULT_BET_STAKE}` }
+  }
   if (params.existingBet && params.existingBet.status !== "PENDING") {
     return { ok: false, reason: "Only pending bets can be edited" }
   }

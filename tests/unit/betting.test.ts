@@ -62,7 +62,7 @@ describe("canPlaceBet", () => {
     kickoffMs: 2000,
     matchStatus: "OPEN",
     userBalance: 100,
-    stake: 50,
+    stake: DEFAULT_BET_STAKE,
     existingBet: null,
   }
 
@@ -79,37 +79,23 @@ describe("canPlaceBet", () => {
   })
 
   it("allows pending bet edits before kickoff", () => {
-    expect(canPlaceBet({ ...base, existingBet: { stake: 40, status: "PENDING" } }).ok).toBe(true)
+    expect(canPlaceBet({ ...base, existingBet: { stake: DEFAULT_BET_STAKE, status: "PENDING" } }).ok).toBe(true)
   })
 
-  it("only requires balance for additional stake when editing", () => {
-    expect(
-      canPlaceBet({
-        ...base,
-        userBalance: 10,
-        stake: 60,
-        existingBet: { stake: 50, status: "PENDING" },
-      }).ok,
-    ).toBe(true)
+  it("blocks non-default stakes", () => {
+    expect(canPlaceBet({ ...base, stake: DEFAULT_BET_STAKE + 1 }).reason).toMatch(/exactly 10/i)
   })
 
-  it("blocks editing when the added stake exceeds balance", () => {
-    expect(
-      canPlaceBet({
-        ...base,
-        userBalance: 9,
-        stake: 60,
-        existingBet: { stake: 50, status: "PENDING" },
-      }).reason,
-    ).toMatch(/insufficient/i)
+  it("allows editing older pending bets while resetting stake to the default", () => {
+    expect(canPlaceBet({ ...base, existingBet: { stake: 50, status: "PENDING" } }).ok).toBe(true)
   })
 
   it("blocks edits to settled bets", () => {
-    expect(canPlaceBet({ ...base, existingBet: { stake: 50, status: "WON" } }).reason).toMatch(/pending/i)
+    expect(canPlaceBet({ ...base, existingBet: { stake: DEFAULT_BET_STAKE, status: "WON" } }).reason).toMatch(/pending/i)
   })
 
   it("blocks insufficient balance", () => {
-    expect(canPlaceBet({ ...base, userBalance: 10 }).reason).toMatch(/insufficient/i)
+    expect(canPlaceBet({ ...base, userBalance: DEFAULT_BET_STAKE - 1 }).reason).toMatch(/insufficient/i)
   })
 
   it("blocks non-open match statuses", () => {

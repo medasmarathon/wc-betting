@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
 
 const optionalDisplayNameSchema = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
@@ -8,7 +9,10 @@ const optionalDisplayNameSchema = z.preprocess(
 export const placeBetSchema = z.object({
   matchId: z.string().min(1),
   pick: z.enum(["HOME", "DRAW", "AWAY"]),
-  stake: z.coerce.number().int().positive().max(100000),
+  stake: z.coerce
+    .number()
+    .int()
+    .refine((value) => value === DEFAULT_BET_STAKE, `Stake must be exactly ${DEFAULT_BET_STAKE}`),
   predictedHomeScore: z.coerce.number().int().min(0).max(99).optional(),
   predictedAwayScore: z.coerce.number().int().min(0).max(99).optional(),
 })
