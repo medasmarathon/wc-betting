@@ -70,15 +70,6 @@ function MatchesContent() {
     return () => window.clearTimeout(timeoutId)
   }, [load, matches])
 
-  const dateKeys = useMemo(() => {
-    const keys = new Set<string>([todayDateKey])
-
-    if (selectedDateKey) keys.add(selectedDateKey)
-    for (const match of matches) keys.add(getLocalDateKey(match.kickoffAt))
-
-    return [...keys].sort()
-  }, [matches, selectedDateKey, todayDateKey])
-
   const filteredMatches = useMemo(() => {
     if (!selectedDateKey) return matches
 
@@ -120,7 +111,6 @@ function MatchesContent() {
         title="Match date"
         selectedDateKey={selectedDateKey}
         todayDateKey={todayDateKey}
-        dateKeys={dateKeys}
         count={filteredMatches.length}
         singularLabel="match"
         pluralLabel="matches"
@@ -128,7 +118,7 @@ function MatchesContent() {
       />
       {error ? <div className="panel p-4 text-red-700">{error}</div> : null}
       {filteredMatches.length ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid items-start gap-4 md:grid-cols-2">
           {filteredMatches.map((match) => (
             <MatchCard
               key={match.id}

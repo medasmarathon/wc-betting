@@ -80,6 +80,26 @@ select {
   background: var(--danger);
 }
 
+.date-filter-current {
+  min-width: 148px;
+  padding-block: 8px;
+}
+
+.date-picker-button {
+  position: relative;
+  width: 44px;
+  min-height: 44px;
+  overflow: hidden;
+  padding-inline: 0;
+}
+
+.date-picker-button input {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
 .team-identity {
   display: inline-flex;
   min-width: 0;

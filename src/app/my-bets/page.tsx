@@ -50,15 +50,6 @@ function MyBetsContent() {
       .then((json) => setBets(json.bets ?? []))
   }, [apiFetch])
 
-  const dateKeys = useMemo(() => {
-    const keys = new Set<string>([todayDateKey])
-
-    if (selectedDateKey) keys.add(selectedDateKey)
-    for (const bet of bets) keys.add(getLocalDateKey(bet.kickoffAt))
-
-    return [...keys].sort()
-  }, [bets, selectedDateKey, todayDateKey])
-
   const filteredBets = useMemo(() => {
     if (!selectedDateKey) return bets
 
@@ -79,7 +70,6 @@ function MyBetsContent() {
         title="Match date"
         selectedDateKey={selectedDateKey}
         todayDateKey={todayDateKey}
-        dateKeys={dateKeys}
         count={filteredBets.length}
         singularLabel="bet"
         pluralLabel="bets"
