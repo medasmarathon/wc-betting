@@ -108,13 +108,7 @@ Enable:
 * Firebase Authentication
 * Cloud Firestore
 
-For authentication, use one of:
-
-1. Email/password
-2. Google sign-in
-3. Email link sign-in
-
-For the MVP, email/password or Google sign-in is simplest.
+For authentication, use Google sign-in.
 
 Use an `invites` collection to restrict who can access the app.
 
@@ -908,22 +902,8 @@ Each card shows:
 * Group/stage
 * Kickoff time
 * Status
-* Odds
 * Existing user bet, if any
 * Place bet button if available
-
-### `/matches/[matchId]`
-
-Match details and bet form.
-
-Show:
-
-* Match info
-* Countdown
-* Odds
-* Current balance
-* Existing bet
-* Bet form if open
 
 ### `/my-bets`
 

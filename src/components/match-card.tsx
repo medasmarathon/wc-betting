@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { BetForm } from "@/components/bet-form"
 import { StatusBadge } from "@/components/status-badge"
 import { MatchupLabel } from "@/components/team-identity"
@@ -63,16 +62,13 @@ export function MatchCard({ match, expanded = false, onToggleBet, onPlaced }: Ma
           ) : null}
         </div>
       ) : null}
-      <div className="flex flex-wrap gap-2">
-        {canUseInlineBetSlip ? (
+      {canUseInlineBetSlip ? (
+        <div className="flex flex-wrap gap-2">
           <button className="button w-fit" type="button" aria-expanded={expanded} onClick={onToggleBet}>
             {expanded ? "Close bet slip" : canEditBet ? "Edit bet" : "Place bet"}
           </button>
-        ) : null}
-        <Link className={`button w-fit ${canUseInlineBetSlip ? "secondary" : ""}`} href={`/matches/${match.id}`}>
-          Details
-        </Link>
-      </div>
+        </div>
+      ) : null}
       {canUseInlineBetSlip && expanded && onPlaced ? (
         <div className="border-t border-[var(--line)] pt-4">
           <BetForm key={match.userBet?.updatedAt ?? `${match.id}-new`} match={match} onPlaced={onPlaced} />

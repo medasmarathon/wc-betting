@@ -269,6 +269,37 @@ select {
   white-space: nowrap;
 }
 
+.app-back-bar {
+  width: min(1180px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding-top: 12px;
+}
+
+.app-back-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--control-background);
+  color: var(--text-secondary);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.app-back-button:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+
+.app-back-button:focus-visible {
+  outline: 3px solid var(--control-focus);
+  outline-offset: 2px;
+}
+
 .date-filter-actions {
   display: flex;
   align-items: center;
@@ -506,6 +537,11 @@ select {
     order: 3;
     margin-inline: -12px;
     padding-inline: 12px;
+  }
+
+  .app-back-bar {
+    width: calc(100vw - 24px);
+    padding-top: 10px;
   }
 
   .account-strip {

@@ -5,13 +5,12 @@ import {
   GoogleAuthProvider,
   User,
   onAuthStateChanged,
-  signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
 } from "firebase/auth"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { auth } from "@/lib/firebase/client"
 
 type Profile = {
@@ -28,7 +27,6 @@ type AuthContextValue = {
   loading: boolean
   error: string | null
   apiFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-  loginWithEmail: (email: string, password: string) => Promise<void>
   loginWithGoogle: () => Promise<void>
   logout: () => Promise<void>
   refreshProfile: () => Promise<Profile>
@@ -96,16 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     error,
     apiFetch,
-    loginWithEmail: async (email, password) => {
-      setLoading(true)
-      try {
-        const credential = await signInWithEmailAndPassword(auth, email, password)
-        setFirebaseUser(credential.user)
-        await loadProfileForUser(credential.user)
-      } finally {
-        setLoading(false)
-      }
-    },
     loginWithGoogle: async () => {
       setLoading(true)
       try {
@@ -218,7 +206,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ) : null}
         </div>
       </header>
+      <AppBackButton />
       {children}
     </>
+  )
+}
+
+function AppBackButton() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const currentPathRef = useRef<string | null>(null)
+  const [canGoBack, setCanGoBack] = useState(false)
+
+  useEffect(() => {
+    if (currentPathRef.current && currentPathRef.current !== pathname) {
+      setCanGoBack(true)
+    }
+    currentPathRef.current = pathname
+  }, [pathname])
+
+  if (!canGoBack) return null
+
+  return (
+    <div className="app-back-bar">
+      <button className="app-back-button" type="button" onClick={() => router.back()}>
+        &lt; Back
+      </button>
+    </div>
   )
 }

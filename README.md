@@ -81,7 +81,7 @@ bob@example.com
 charlie@example.com
 ```
 
-Local password:
+The app login screen uses Google sign-in only. Seeded users still receive a local Firebase Auth password for emulator/admin troubleshooting:
 
 ```text
 password123
@@ -156,7 +156,6 @@ Create one Firebase project and enable:
 
 Recommended auth providers:
 
-- Email/password
 - Google sign-in
 
 Deploy Firestore rules and indexes:
