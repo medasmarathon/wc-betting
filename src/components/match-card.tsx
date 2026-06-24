@@ -40,7 +40,7 @@ export function MatchCard({ match, expanded = false, onToggleBet, onPlaced }: Ma
   const canUseInlineBetSlip = match.isBettable && (!match.userBet || canEditBet)
 
   return (
-    <article className="panel grid gap-4 p-4">
+    <article className="panel grid self-start gap-4 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xl font-black">
@@ -51,8 +51,9 @@ export function MatchCard({ match, expanded = false, onToggleBet, onPlaced }: Ma
               awayTeamCode={match.awayTeamCode}
             />
           </div>
-          <div className="mt-1 text-sm text-stone-600">
-            {[match.groupName, match.stage, formatKickoff(match.kickoffAt)].filter(Boolean).join(" • ")}
+          <div className="mt-2 grid gap-1 text-sm">
+            <div className="font-medium text-stone-700">{[match.groupName, match.stage].filter(Boolean).join(" - ")}</div>
+            <div className="font-bold text-stone-900">{formatKickoff(match.kickoffAt)}</div>
           </div>
         </div>
         <StatusBadge status={match.status} />

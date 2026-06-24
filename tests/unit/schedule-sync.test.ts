@@ -249,22 +249,33 @@ describe("buildMatchSyncDecision", () => {
     expect(decision.operation).toBe("skip")
   })
 
-  it("does not overwrite teams after kickoff", () => {
+  it("skips past matches that are not ongoing", () => {
     const decision = buildMatchSyncDecision(
       { ...fixture, homeTeam: "Changed Team" },
       { status: "LOCKED", kickoffAt: { toMillis: () => Date.parse("2026-06-11T19:00:00Z") } },
       Date.parse("2026-06-12T00:00:00Z"),
     )
 
+    expect(decision.operation).toBe("skip")
+  })
+
+  it("updates live status without overwriting teams after kickoff", () => {
+    const decision = buildMatchSyncDecision(
+      { ...fixture, homeTeam: "Changed Team", status: "LIVE", homeScore: 1, awayScore: 0 },
+      { status: "LOCKED", kickoffAt: { toMillis: () => Date.parse("2026-06-11T19:00:00Z") } },
+      Date.parse("2026-06-11T20:00:00Z"),
+    )
+
     expect(decision.operation).toBe("update")
     if (decision.operation !== "update") throw new Error("Expected update decision")
     expect(decision.data.homeTeam).toBeUndefined()
+    expect(decision.data).toMatchObject({ status: "LIVE", homeScore: 1, awayScore: 0 })
   })
 
   it("does not mark a completed source fixture completed without scores", () => {
     const decision = buildMatchSyncDecision(
       { ...fixture, status: "COMPLETED", homeScore: undefined, awayScore: undefined },
-      { status: "LOCKED", kickoffAt: { toMillis: () => Date.parse("2026-06-11T19:00:00Z") } },
+      { status: "LIVE", kickoffAt: { toMillis: () => Date.parse("2026-06-11T19:00:00Z") } },
       Date.parse("2026-06-12T00:00:00Z"),
     )
 

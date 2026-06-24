@@ -179,7 +179,14 @@ export function buildMatchSyncDecision(
   }
 
   const existingKickoffMs = toMillis(existing.kickoffAt)
-  const beforeKickoff = existingKickoffMs === undefined || existingKickoffMs > nowMs
+  const fixtureKickoffMs = fixture.kickoffAt.getTime()
+  const beforeKickoff = (existingKickoffMs ?? fixtureKickoffMs) > nowMs
+  const ongoing = existing.status === "LIVE" || fixture.status === "LIVE"
+
+  if (!beforeKickoff && !ongoing) {
+    return { operation: "skip", reason: "past-match" }
+  }
+
   const data: Record<string, unknown> = {
     externalId: fixture.externalId,
     source: fixture.source,

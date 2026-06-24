@@ -236,7 +236,7 @@ GET /api/cron/sync-schedule
 
 The endpoint requires either an admin Firebase bearer token or Vercel Cron's `Authorization: Bearer ${CRON_SECRET}` header. Local/manual cron calls can also use the `x-cron-secret` header.
 
-Admins can also trigger it from the Admin dashboard with the Sync schedule button. Admin-triggered calls are limited to once per hour and return `429` with `Retry-After` when the hourly slot has already been used. Cron-secret calls bypass that manual limit. `vercel.json` runs it once per day at 15:00 UTC, which is 11:00 ET during the tournament.
+Admins can also trigger it from the Admin dashboard with the Sync schedule button. Admin-triggered calls are limited to once per hour and return `429` with `Retry-After` when the hourly slot has already been used. The Admin dashboard also keeps an hourly browser-session refresh running while an admin has the page open, which is the no-cron option for Vercel projects that cannot run hourly Cron jobs. Cron-secret calls bypass the manual limit. `vercel.json` runs it once per day at 15:00 UTC, which is 11:00 ET during the tournament.
 
 For local development, `npm run cron:local` calls the configured `LOCAL_CRON_JOBS` on `LOCAL_CRON_INTERVAL_MS`. It reads `.env.local`, uses `LOCAL_CRON_BASE_URL`, and refuses to run without emulator environment variables unless `LOCAL_CRON_ALLOW_NON_EMULATOR=true` is set.
 
@@ -245,6 +245,7 @@ Sync behavior:
 - ESPN scoreboard JSON is the primary source.
 - TheStatsAPI's free fixtures JSON is the fallback source and requires attribution: data fallback provided by TheStatsAPI, https://www.thestatsapi.com.
 - Imported matches use stable IDs like `wc2026-match-1`.
+- Existing imported matches are updated only when the match is still in the future or is currently live. Past non-live matches are skipped.
 - Placeholder knockout matches are stored but are not bettable until both teams are confirmed.
 - Completed matches with an unambiguous final result are settled automatically.
 - Settlement uses the official final outcome, including extra time or penalties when applicable. `DRAW` only wins when the official final result is a draw.

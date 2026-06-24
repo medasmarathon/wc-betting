@@ -1,9 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { StatusBadge } from "@/components/status-badge"
+
+const SCHEDULE_SYNC_INTERVAL_MS = 60 * 60 * 1000
 
 type Match = { id: string; homeTeam: string; awayTeam: string; status: string }
 type User = { id: string; displayName: string; balance: number; role: string; isActive: boolean }
@@ -30,6 +32,7 @@ function AdminContent() {
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [scheduleSyncPending, setScheduleSyncPending] = useState(false)
   const [scheduleSyncMessage, setScheduleSyncMessage] = useState<string | null>(null)
+  const scheduleSyncInFlight = useRef(false)
 
   const load = useCallback(() => {
     Promise.all([
@@ -47,7 +50,9 @@ function AdminContent() {
     load()
   }, [load])
 
-  async function triggerScheduleSync() {
+  const triggerScheduleSync = useCallback(async () => {
+    if (scheduleSyncInFlight.current) return
+    scheduleSyncInFlight.current = true
     setScheduleSyncPending(true)
 
     try {
@@ -62,9 +67,18 @@ function AdminContent() {
       setScheduleSyncMessage(formatScheduleSyncSuccess(json))
       load()
     } finally {
+      scheduleSyncInFlight.current = false
       setScheduleSyncPending(false)
     }
-  }
+  }, [apiFetch, load])
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void triggerScheduleSync()
+    }, SCHEDULE_SYNC_INTERVAL_MS)
+
+    return () => window.clearInterval(intervalId)
+  }, [triggerScheduleSync])
 
   return (
     <main className="page grid gap-5">
