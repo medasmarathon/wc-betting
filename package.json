@@ -21,6 +21,8 @@
     "dev:emulated:cron": "concurrently \"npm run emulators\" \"npm run dev\" \"npm run cron:local\""
   },
   "dependencies": {
+    "@mantine/core": "^9.4.0",
+    "@mantine/hooks": "^9.4.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "firebase": "^12.6.0",

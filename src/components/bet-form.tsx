@@ -1,5 +1,6 @@
 "use client"
 
+import { Button, Group, NumberInput, SegmentedControl, Stack, Text, TextInput } from "@mantine/core"
 import { useState } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { TeamIdentity } from "@/components/team-identity"
@@ -16,7 +17,6 @@ type BetFormProps = {
     awayTeam: string
     homeTeamCode?: string
     awayTeamCode?: string
-    odds: { HOME: number; DRAW: number; AWAY: number }
     userBet?: {
       pick: BetPick
       stake: number
@@ -25,7 +25,7 @@ type BetFormProps = {
       status: string
     } | null
   }
-  onPlaced: () => void
+  onPlaced: () => void | Promise<void>
 }
 
 export function BetForm({ match, onPlaced }: BetFormProps) {
@@ -64,7 +64,7 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
       }
       const savedAction = json.action === "updated" || isEditing ? "updated" : "placed"
       setMessage(`Bet ${savedAction} on ${formatPickLabel(pick, match)}.`)
-      onPlaced()
+      await onPlaced()
     } catch {
       setMessage("Unable to save bet")
     } finally {
@@ -73,57 +73,61 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-3">
-      <div className="pick-grid">
-        {PICK_OPTIONS.map((option) => {
-          const pickTeam = getPickTeam(option, match)
-          return (
-            <button
-              key={option}
-              type="button"
-              className="pick-card"
-              aria-pressed={pick === option}
-              disabled={pending}
-              onClick={() => setPick(option)}
-            >
-              <span className="pick-card-label">
-                {pickTeam ? (
-                  <TeamIdentity team={pickTeam.team} teamCode={pickTeam.teamCode} compact />
-                ) : (
-                  <span className="team-identity team-identity-compact">
-                    <span className="draw-mark" aria-hidden="true">
-                      D
-                    </span>
-                    <span className="team-name">Draw</span>
+    <form onSubmit={submit}>
+      <Stack gap="sm">
+        <SegmentedControl
+          fullWidth
+          value={pick}
+          disabled={pending}
+          onChange={(value) => setPick(value as BetPick)}
+          data={PICK_OPTIONS.map((option) => {
+            const pickTeam = getPickTeam(option, match)
+            return {
+              value: option,
+              label: pickTeam ? (
+                <TeamIdentity team={pickTeam.team} teamCode={pickTeam.teamCode} compact />
+              ) : (
+                <span className="team-identity team-identity-compact">
+                  <span className="draw-mark" aria-hidden="true">
+                    D
                   </span>
-                )}
-              </span>
-              <span className="pick-card-odds">Odds {match.odds[option]}</span>
-            </button>
-          )
-        })}
-      </div>
-      <label className="grid gap-1 text-sm font-bold">
-        Stake
-        <input className="field" type="number" min={1} value={stake} onChange={(event) => setStake(Number(event.target.value))} />
-      </label>
-      <p className="text-sm text-stone-600">
-        If your pick is correct, your stake is refunded. If not, it goes into the party fund.
-      </p>
-      <div className="grid grid-cols-2 gap-2">
-        <label className="grid gap-1 text-sm font-bold">
-          {formatScoreLabel("home", match)}
-          <input className="field" type="number" min={0} value={predictedHomeScore} onChange={(event) => setPredictedHomeScore(event.target.value)} />
-        </label>
-        <label className="grid gap-1 text-sm font-bold">
-          {formatScoreLabel("away", match)}
-          <input className="field" type="number" min={0} value={predictedAwayScore} onChange={(event) => setPredictedAwayScore(event.target.value)} />
-        </label>
-      </div>
-      <button className="button" disabled={pending}>
-        {pending ? "Saving..." : isEditing ? "Save changes" : "Place bet"}
-      </button>
-      {message ? <p className="text-sm text-stone-700">{message}</p> : null}
+                  <span className="team-name">Draw</span>
+                </span>
+              ),
+            }
+          })}
+        />
+        <NumberInput label="Stake" min={1} value={stake} disabled={pending} onChange={(value) => setStake(Number(value) || 0)} />
+        <Text size="sm" c="dimmed">
+          If your pick is correct, your stake is refunded. If not, it goes into the party fund.
+        </Text>
+        <Group grow align="flex-start">
+          <TextInput
+            label={formatScoreLabel("home", match)}
+            type="number"
+            min={0}
+            value={predictedHomeScore}
+            disabled={pending}
+            onChange={(event) => setPredictedHomeScore(event.target.value)}
+          />
+          <TextInput
+            label={formatScoreLabel("away", match)}
+            type="number"
+            min={0}
+            value={predictedAwayScore}
+            disabled={pending}
+            onChange={(event) => setPredictedAwayScore(event.target.value)}
+          />
+        </Group>
+        <Button type="submit" loading={pending}>
+          {isEditing ? "Save changes" : "Place bet"}
+        </Button>
+        {message ? (
+          <Text size="sm" c="dimmed">
+            {message}
+          </Text>
+        ) : null}
+      </Stack>
     </form>
   )
 }

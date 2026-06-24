@@ -19,7 +19,6 @@ type MatchCardProps = {
     stage: string
     kickoffAt: string
     status: string
-    odds: { HOME: number; DRAW: number; AWAY: number }
     isBettable: boolean
     userBet?: {
       pick: BetPick

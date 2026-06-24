@@ -117,7 +117,6 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
     if (!allowed.ok) throw new HttpError(400, allowed.reason ?? "Bet is not allowed")
     if (!userDoc.isActive) throw new HttpError(403, "User is inactive")
 
-    const odds = match.odds[input.pick]
     const potentialPayout = calculatePayout(input.stake)
     const previousStake = existingBetDoc?.stake ?? 0
     const stakeDelta = input.stake - previousStake
@@ -139,7 +138,6 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
       kickoffAt: match.kickoffAt,
       pick: input.pick,
       stake: input.stake,
-      odds,
       potentialPayout,
       fundContribution: 0,
       status: "PENDING" as const,
@@ -244,7 +242,6 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
         matchId: input.matchId,
         pick: input.pick,
         stake: input.stake,
-        odds,
         stakeDelta,
         ...(input.predictedHomeScore === undefined ? {} : { predictedHomeScore: input.predictedHomeScore }),
         ...(input.predictedAwayScore === undefined ? {} : { predictedAwayScore: input.predictedAwayScore }),

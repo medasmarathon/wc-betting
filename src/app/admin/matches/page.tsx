@@ -16,7 +16,6 @@ type Match = {
   stage: string
   kickoffAt: string
   status: string
-  odds: { HOME: number; DRAW: number; AWAY: number }
   homeScore?: number
   awayScore?: number
   resultPick?: "HOME" | "DRAW" | "AWAY"
@@ -42,9 +41,6 @@ function AdminMatchesContent() {
     groupName: "",
     stage: "GROUP",
     kickoffAt: "",
-    homeOdds: "2",
-    drawOdds: "3",
-    awayOdds: "2",
   })
 
   const load = useCallback(() => {
@@ -68,11 +64,6 @@ function AdminMatchesContent() {
         stage: form.stage,
         kickoffAt: form.kickoffAt,
         status: "OPEN",
-        odds: {
-          HOME: Number(form.homeOdds),
-          DRAW: Number(form.drawOdds),
-          AWAY: Number(form.awayOdds),
-        },
       }),
     })
     const json = await response.json()
@@ -110,11 +101,6 @@ function AdminMatchesContent() {
             ))}
           </select>
           <input className="field" type="datetime-local" value={form.kickoffAt} onChange={(event) => setForm({ ...form, kickoffAt: event.target.value })} />
-          <div className="grid grid-cols-3 gap-2">
-            <input className="field" type="number" step="0.01" value={form.homeOdds} onChange={(event) => setForm({ ...form, homeOdds: event.target.value })} />
-            <input className="field" type="number" step="0.01" value={form.drawOdds} onChange={(event) => setForm({ ...form, drawOdds: event.target.value })} />
-            <input className="field" type="number" step="0.01" value={form.awayOdds} onChange={(event) => setForm({ ...form, awayOdds: event.target.value })} />
-          </div>
         </div>
         <button className="button w-fit">Create match</button>
         {message ? <p className="text-sm text-stone-700">{message}</p> : null}

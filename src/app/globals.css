@@ -198,13 +198,6 @@ select {
   font-weight: 900;
 }
 
-.pick-card-odds {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
 .table {
   width: 100%;
   border-collapse: collapse;

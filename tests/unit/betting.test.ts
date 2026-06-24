@@ -35,7 +35,7 @@ describe("calculateFinalResultPick", () => {
 })
 
 describe("calculatePayout", () => {
-  it("refunds the original stake independent of stored odds", () => {
+  it("refunds the original stake", () => {
     expect(calculatePayout(50)).toBe(50)
   })
 })

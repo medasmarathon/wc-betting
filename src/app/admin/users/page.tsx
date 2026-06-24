@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@mantine/core"
 import { useCallback, useEffect, useState, type FormEvent } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 
@@ -120,9 +121,9 @@ function AdminUsersContent() {
             <option value="USER">User</option>
             <option value="ADMIN">Admin</option>
           </select>
-          <button className="button" disabled={invitePending}>
-            {invitePending ? "Saving..." : "Add invite"}
-          </button>
+          <Button type="submit" loading={invitePending}>
+            Add invite
+          </Button>
         </form>
       </section>
       <div className="grid gap-4">

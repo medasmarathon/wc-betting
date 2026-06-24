@@ -25,8 +25,6 @@ export type WalletTransactionType =
   | "ADMIN_ADJUSTMENT"
   | "VOID_REFUND"
 
-export type Odds = Record<BetPick, number>
-
 export type UserDoc = {
   email: string
   displayName: string
@@ -66,7 +64,6 @@ export type MatchDoc = {
   stage: MatchStage
   kickoffAt: FirebaseDate
   status: MatchStatus
-  odds: Odds
   homeScore?: number
   awayScore?: number
   homeShootoutScore?: number
@@ -97,7 +94,6 @@ export type BetDoc = {
   kickoffAt: FirebaseDate
   pick: BetPick
   stake: number
-  odds: number
   potentialPayout: number
   fundContribution: number
   predictedHomeScore?: number

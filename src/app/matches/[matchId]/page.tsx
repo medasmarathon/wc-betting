@@ -1,5 +1,6 @@
 "use client"
 
+import { Alert, Card, Center, Loader, LoadingOverlay, Stack, Text } from "@mantine/core"
 import { useParams } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
@@ -22,7 +23,6 @@ type MatchDetail = {
   stage: string
   kickoffAt: string
   status: string
-  odds: { HOME: number; DRAW: number; AWAY: number }
   isBettable: boolean
   homeScore?: number
   awayScore?: number
@@ -53,19 +53,51 @@ function MatchDetailContent() {
   const { apiFetch } = useAuth()
   const [match, setMatch] = useState<MatchDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const load = useCallback(() => {
+  const fetchMatch = useCallback(async () => {
+    try {
+      const response = await apiFetch(`/api/matches/${matchId}`)
+      const json = await response.json()
+      if (!response.ok) throw new Error(json.error)
+      setError(null)
+      setMatch(json.match)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to load match")
+    }
+  }, [apiFetch, matchId])
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      await fetchMatch()
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchMatch])
+
+  useEffect(() => {
+    let cancelled = false
+
     apiFetch(`/api/matches/${matchId}`)
       .then(async (response) => {
         const json = await response.json()
         if (!response.ok) throw new Error(json.error)
+        if (cancelled) return
         setError(null)
         setMatch(json.match)
       })
-      .catch((caught) => setError(caught instanceof Error ? caught.message : "Unable to load match"))
-  }, [apiFetch, matchId])
+      .catch((caught) => {
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Unable to load match")
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
 
-  useEffect(() => load(), [load])
+    return () => {
+      cancelled = true
+    }
+  }, [apiFetch, matchId])
 
   useEffect(() => {
     if (!match?.isBettable) return
@@ -93,12 +125,28 @@ function MatchDetailContent() {
     return () => window.clearTimeout(timeoutId)
   }, [load, match?.id, match?.isBettable, match?.kickoffAt])
 
-  if (!match) return <main className="page">{error ?? "Loading..."}</main>
+  if (!match) {
+    return (
+      <main className="page">
+        {loading ? (
+          <Center py="xl">
+            <Loader aria-label="Loading match" />
+          </Center>
+        ) : (
+          <Alert color="red" variant="light">
+            {error ?? "Unable to load match"}
+          </Alert>
+        )}
+      </main>
+    )
+  }
 
   return (
-    <main className="page grid gap-5 lg:grid-cols-[1fr_360px]">
-      <section className="panel grid gap-5 p-5">
-        <div className="flex flex-wrap justify-between gap-3">
+    <main className="page grid items-start gap-5 lg:grid-cols-[1fr_360px]">
+      <Card withBorder radius="md" p="lg" className="relative">
+        <LoadingOverlay visible={loading} loaderProps={{ "aria-label": "Refreshing match" }} />
+        <Stack gap="lg">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-3xl font-black">
               <MatchupLabel
@@ -125,10 +173,11 @@ function MatchDetailContent() {
             </div>
           </div>
         ) : null}
-      </section>
-      <aside className="panel h-fit p-5">
+        </Stack>
+      </Card>
+      <Card component="aside" withBorder radius="md" p="lg">
         {match.userBet ? (
-          <div className="grid gap-4">
+          <Stack gap="md">
             <div className="grid gap-2">
               <h2 className="text-xl font-black">Your bet</h2>
               <p>
@@ -146,13 +195,15 @@ function MatchDetailContent() {
                 <BetForm key={match.userBet.updatedAt ?? `${match.id}-edit`} match={match} onPlaced={load} />
               </div>
             ) : null}
-          </div>
+          </Stack>
         ) : match.isBettable ? (
           <BetForm key={`${match.id}-new`} match={match} onPlaced={load} />
         ) : (
-          <p className="text-sm text-stone-600">Betting is closed for this match.</p>
+          <Text size="sm" c="dimmed">
+            Betting is closed for this match.
+          </Text>
         )}
-      </aside>
+      </Card>
     </main>
   )
 }

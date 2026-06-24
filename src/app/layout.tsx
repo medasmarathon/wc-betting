@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
+import { UiProvider } from "@/components/mantine-provider"
 import { AppShell, AuthProvider } from "@/components/auth-provider"
+import "@mantine/core/styles.css"
 import "flag-icons/css/flag-icons.min.css"
 import "./globals.css"
 
@@ -12,9 +14,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <AuthProvider>
-          <AppShell>{children}</AppShell>
-        </AuthProvider>
+        <UiProvider>
+          <AuthProvider>
+            <AppShell>{children}</AppShell>
+          </AuthProvider>
+        </UiProvider>
       </body>
     </html>
   )

@@ -5,7 +5,6 @@ import type { BetPick, MatchDoc, MatchStage, MatchStatus } from "@/types/betting
 const ESPN_SCOREBOARD_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719&limit=200"
 const THE_STATS_API_FIXTURES_URL = "https://www.thestatsapi.com/world-cup/data/fixtures.json"
-const DEFAULT_ODDS = { HOME: 2, DRAW: 3, AWAY: 2 } as const
 const TERMINAL_MATCH_STATUSES = new Set<MatchStatus>(["SETTLED", "VOIDED"])
 const RESULT_SOURCE_STATUSES = new Set<MatchStatus>(["LIVE", "COMPLETED"])
 
@@ -165,7 +164,6 @@ export function buildMatchSyncDecision(
       operation: "create",
       data: removeUndefined({
         ...fixtureFields(fixture),
-        odds: DEFAULT_ODDS,
         betCount: 0,
         totalStaked: 0,
         createdBy: "schedule-sync",

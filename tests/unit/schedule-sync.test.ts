@@ -221,7 +221,6 @@ describe("buildMatchSyncDecision", () => {
     expect(decision.data).toMatchObject({
       homeTeam: "Mexico",
       awayTeam: "South Africa",
-      odds: { HOME: 2, DRAW: 3, AWAY: 2 },
       betCount: 0,
       totalStaked: 0,
     })

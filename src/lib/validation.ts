@@ -1,11 +1,5 @@
 import { z } from "zod"
 
-const oddsSchema = z.object({
-  HOME: z.coerce.number().positive(),
-  DRAW: z.coerce.number().positive(),
-  AWAY: z.coerce.number().positive(),
-})
-
 const optionalDisplayNameSchema = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z.string().trim().min(1).max(120).optional(),
@@ -32,7 +26,6 @@ export const matchInputSchema = z.object({
   status: z
     .enum(["SCHEDULED", "OPEN", "LOCKED", "LIVE", "COMPLETED", "SETTLED", "VOIDED"])
     .default("OPEN"),
-  odds: oddsSchema.default({ HOME: 2, DRAW: 3, AWAY: 2 }),
 })
 
 export const resultInputSchema = z.object({

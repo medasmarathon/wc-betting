@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@mantine/core"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/components/auth-provider"
@@ -59,13 +60,13 @@ export default function LoginPage() {
             Password
             <input className="field" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
           </label>
-          <button className="button" disabled={pending}>
+          <Button type="submit" loading={pending}>
             Sign in
-          </button>
+          </Button>
         </form>
-        <button className="button secondary" onClick={signInWithGoogle} disabled={pending}>
+        <Button variant="outline" onClick={signInWithGoogle} disabled={pending} loading={pending}>
           Continue with Google
-        </button>
+        </Button>
         {message || error ? <p className="text-sm text-red-700">{message ?? error}</p> : null}
       </section>
     </main>

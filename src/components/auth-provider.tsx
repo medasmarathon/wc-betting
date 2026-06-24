@@ -1,5 +1,6 @@
 "use client"
 
+import { Alert, Center, Loader } from "@mantine/core"
 import {
   GoogleAuthProvider,
   User,
@@ -138,11 +139,41 @@ export function AuthGate({ children, adminOnly = false }: { children: React.Reac
     if (!loading && !firebaseUser) router.replace("/login")
   }, [firebaseUser, loading, router])
 
-  if (loading) return <div className="page">Loading...</div>
-  if (error) return <div className="page panel p-5 text-red-700">{error}</div>
-  if (!firebaseUser || !profile) return <div className="page">Redirecting...</div>
+  if (loading) {
+    return (
+      <main className="page">
+        <Center py="xl">
+          <Loader aria-label="Loading profile" />
+        </Center>
+      </main>
+    )
+  }
+  if (error) {
+    return (
+      <main className="page">
+        <Alert color="red" variant="light">
+          {error}
+        </Alert>
+      </main>
+    )
+  }
+  if (!firebaseUser || !profile) {
+    return (
+      <main className="page">
+        <Center py="xl">
+          <Loader aria-label="Redirecting" />
+        </Center>
+      </main>
+    )
+  }
   if (adminOnly && profile.role !== "ADMIN") {
-    return <div className="page panel p-5 text-red-700">Admin access required.</div>
+    return (
+      <main className="page">
+        <Alert color="red" variant="light">
+          Admin access required.
+        </Alert>
+      </main>
+    )
   }
   return <>{children}</>
 }
