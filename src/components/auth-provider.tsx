@@ -20,6 +20,8 @@ type Profile = {
   displayName: string
   role: "USER" | "ADMIN"
   isActive: boolean
+  groupId?: string
+  groupName?: string
 }
 
 type AuthContextValue = {

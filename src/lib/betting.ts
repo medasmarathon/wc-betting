@@ -142,6 +142,8 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
       userId: user.uid,
       userEmail: user.email,
       userDisplayName: user.displayName,
+      ...(userDoc.groupId ? { groupId: userDoc.groupId } : {}),
+      ...(userDoc.groupName ? { groupName: userDoc.groupName } : {}),
       matchId: input.matchId,
       matchLabel,
       homeTeam: match.homeTeam,
@@ -160,6 +162,8 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
     if (existingBetDoc) {
       tx.update(betRef, {
         ...betFields,
+        ...(userDoc.groupId ? {} : { groupId: FieldValue.delete() }),
+        ...(userDoc.groupName ? {} : { groupName: FieldValue.delete() }),
         predictedHomeScore: FieldValue.delete(),
         predictedAwayScore: FieldValue.delete(),
         updatedAt: savedAt,

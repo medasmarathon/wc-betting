@@ -50,3 +50,7 @@ export const inviteInputSchema = z.object({
   displayName: optionalDisplayNameSchema,
   role: z.enum(["USER", "ADMIN"]).default("USER"),
 })
+
+export const groupInputSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+})

@@ -30,9 +30,19 @@ export type UserDoc = {
   displayName: string
   role: UserRole
   isActive: boolean
+  groupId?: string
+  groupName?: string
   balance: number
   startingBalance: number
   createdAt: FirebaseDate
+  updatedAt: FirebaseDate
+}
+
+export type GroupDoc = {
+  name: string
+  createdBy?: string
+  createdAt: FirebaseDate
+  updatedBy?: string
   updatedAt: FirebaseDate
 }
 
@@ -85,6 +95,8 @@ export type BetDoc = {
   userId: string
   userEmail: string
   userDisplayName: string
+  groupId?: string
+  groupName?: string
   matchId: string
   matchLabel: string
   homeTeam: string

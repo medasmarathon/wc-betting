@@ -23,7 +23,7 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
         primaryColor: "stadium",
         primaryShade: 6,
         defaultRadius: "sm",
-        fontFamily: "Arial, Helvetica, sans-serif",
+        fontFamily: "var(--font-app), Arial, Helvetica, sans-serif",
       }}
     >
       {children}

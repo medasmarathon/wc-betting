@@ -10,6 +10,8 @@ export type AuthedUser = {
   displayName: string
   role: UserRole
   isActive: boolean
+  groupId?: string
+  groupName?: string
 }
 
 export class HttpError extends Error {
@@ -65,6 +67,8 @@ export async function ensureProfile(decoded: DecodedIdToken): Promise<AuthedUser
       displayName: user.displayName,
       role: user.role,
       isActive: user.isActive,
+      groupId: user.groupId,
+      groupName: user.groupName,
     }
   }
 

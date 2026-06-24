@@ -4,7 +4,12 @@ import { useEffect, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { LeaderboardTable } from "@/components/leaderboard-table"
 import { useI18n } from "@/components/language-provider"
-import { unitLabel } from "@/lib/i18n"
+import { formatMessage, unitLabel } from "@/lib/i18n"
+
+type UserGroup = {
+  id: string
+  name: string
+}
 
 export default function LeaderboardPage() {
   return (
@@ -19,6 +24,8 @@ function LeaderboardContent() {
   const { apiFetch } = useAuth()
   const [rows, setRows] = useState([])
   const [confirmedFundTotal, setConfirmedFundTotal] = useState(0)
+  const [groupFundTotal, setGroupFundTotal] = useState<number | null>(null)
+  const [userGroup, setUserGroup] = useState<UserGroup | null>(null)
 
   useEffect(() => {
     Promise.all([apiFetch("/api/leaderboard"), apiFetch("/api/fund")])
@@ -29,6 +36,8 @@ function LeaderboardContent() {
         ])
         setRows(leaderboardJson.leaderboard ?? [])
         setConfirmedFundTotal(fundJson.confirmedFundTotal ?? 0)
+        setGroupFundTotal(typeof fundJson.groupFundTotal === "number" ? fundJson.groupFundTotal : null)
+        setUserGroup(fundJson.userGroup ?? null)
       })
   }, [apiFetch])
 
@@ -40,6 +49,14 @@ function LeaderboardContent() {
           <div className="page-subtitle text-sm font-bold">{t.leaderboard.partyFund}</div>
           <div className="page-title text-2xl font-black">{unitLabel(confirmedFundTotal, locale)}</div>
         </div>
+        {userGroup ? (
+          <div className="panel px-4 py-3">
+            <div className="page-subtitle text-sm font-bold">
+              {formatMessage(t.leaderboard.groupFund, { group: userGroup.name })}
+            </div>
+            <div className="page-title text-2xl font-black">{unitLabel(groupFundTotal ?? 0, locale)}</div>
+          </div>
+        ) : null}
       </div>
       <LeaderboardTable rows={rows} />
     </main>

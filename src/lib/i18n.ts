@@ -92,6 +92,7 @@ export const messages = {
     leaderboard: {
       title: "Leaderboard",
       partyFund: "Party fund",
+      groupFund: "{group} fund",
     },
     table: {
       match: "Match",
@@ -212,6 +213,7 @@ export const messages = {
     leaderboard: {
       title: "Bảng xếp hạng",
       partyFund: "Quỹ chung",
+      groupFund: "Quỹ nhóm {group}",
     },
     table: {
       match: "Trận",
