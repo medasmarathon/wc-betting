@@ -1,6 +1,6 @@
 "use client"
 
-import { Button, Group, SegmentedControl, Stack, Text, TextInput } from "@mantine/core"
+import { Button, Group, Stack, Text, TextInput } from "@mantine/core"
 import { useState } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { TeamIdentity } from "@/components/team-identity"
@@ -74,28 +74,32 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
   return (
     <form onSubmit={submit}>
       <Stack gap="sm">
-        <SegmentedControl
-          fullWidth
-          value={pick}
-          disabled={pending}
-          onChange={(value) => setPick(value as BetPick)}
-          data={PICK_OPTIONS.map((option) => {
+        <div className="bet-pick-grid">
+          {PICK_OPTIONS.map((option) => {
             const pickTeam = getPickTeam(option, match)
-            return {
-              value: option,
-              label: pickTeam ? (
-                <TeamIdentity team={pickTeam.team} teamCode={pickTeam.teamCode} compact />
-              ) : (
-                <span className="team-identity team-identity-compact">
-                  <span className="draw-mark" aria-hidden="true">
-                    D
+            return (
+              <button
+                key={option}
+                type="button"
+                className="bet-pick-button"
+                aria-pressed={pick === option}
+                disabled={pending}
+                onClick={() => setPick(option)}
+              >
+                {pickTeam ? (
+                  <TeamIdentity team={pickTeam.team} teamCode={pickTeam.teamCode} compact />
+                ) : (
+                  <span className="team-identity team-identity-compact">
+                    <span className="draw-mark" aria-hidden="true">
+                      D
+                    </span>
+                    <span className="team-name">Draw</span>
                   </span>
-                  <span className="team-name">Draw</span>
-                </span>
-              ),
-            }
+                )}
+              </button>
+            )
           })}
-        />
+        </div>
         <div className="rounded-md border border-[var(--line)] bg-stone-50 px-3 py-2">
           <Text size="sm" fw={700}>
             Stake
