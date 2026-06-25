@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
+import { TableSkeleton } from "@/components/loading-state"
 import { formatKickoff } from "@/lib/time"
 
 type AuditLog = {
@@ -24,17 +25,22 @@ export default function AdminAuditLogPage() {
 function AdminAuditLogContent() {
   const { apiFetch } = useAuth()
   const [logs, setLogs] = useState<AuditLog[]>([])
+  const [loadingLogs, setLoadingLogs] = useState(true)
 
   useEffect(() => {
     apiFetch("/api/admin/audit-log")
       .then((response) => response.json())
       .then((json) => setLogs(json.logs ?? []))
+      .finally(() => setLoadingLogs(false))
   }, [apiFetch])
 
   return (
     <main className="page grid gap-5">
       <h1 className="page-title text-3xl font-black">Audit log</h1>
-      <div className="panel table-shell">
+      {loadingLogs ? (
+        <TableSkeleton label="Loading audit log..." rows={5} columns={5} />
+      ) : (
+        <div className="panel table-shell">
         <table className="table">
           <thead>
             <tr>
@@ -57,7 +63,8 @@ function AdminAuditLogContent() {
             ))}
           </tbody>
         </table>
-      </div>
+        </div>
+      )}
     </main>
   )
 }

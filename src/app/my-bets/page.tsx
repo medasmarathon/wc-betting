@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { DateFilter } from "@/components/date-filter"
 import { useI18n } from "@/components/language-provider"
+import { TableSkeleton } from "@/components/loading-state"
 import { StatusBadge } from "@/components/status-badge"
 import { TeamIdentity } from "@/components/team-identity"
 import { formatMessage, statusLabel, unitLabel, type Locale } from "@/lib/i18n"
@@ -45,13 +46,25 @@ function MyBetsContent() {
   const { locale, t } = useI18n()
   const { apiFetch } = useAuth()
   const [bets, setBets] = useState<Bet[]>([])
+  const [loadingBets, setLoadingBets] = useState(true)
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(() => getLocalDateKey(new Date()))
   const todayDateKey = getLocalDateKey(new Date())
 
   useEffect(() => {
+    let cancelled = false
+
     apiFetch("/api/my-bets")
       .then((response) => response.json())
-      .then((json) => setBets(json.bets ?? []))
+      .then((json) => {
+        if (!cancelled) setBets(json.bets ?? [])
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingBets(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [apiFetch])
 
   const filteredBets = useMemo(() => {
@@ -79,10 +92,17 @@ function MyBetsContent() {
         count={filteredBets.length}
         singularLabel={t.table.bets.toLowerCase()}
         pluralLabel={t.table.bets.toLowerCase()}
+        loadingLabel={loadingBets ? t.bets.loading : undefined}
         onSelectDate={setSelectedDateKey}
       />
-      <BetTable title={t.bets.pendingTitle} bets={pendingBets} empty={formatMessage(t.bets.emptyPending, { suffix: dateEmptySuffix })} />
-      <BetTable title={t.bets.previousTitle} bets={previousBets} empty={formatMessage(t.bets.emptySettled, { suffix: dateEmptySuffix })} />
+      {loadingBets ? (
+        <TableSkeleton label={t.bets.loading} rows={4} columns={10} />
+      ) : (
+        <>
+          <BetTable title={t.bets.pendingTitle} bets={pendingBets} empty={formatMessage(t.bets.emptyPending, { suffix: dateEmptySuffix })} />
+          <BetTable title={t.bets.previousTitle} bets={previousBets} empty={formatMessage(t.bets.emptySettled, { suffix: dateEmptySuffix })} />
+        </>
+      )}
     </main>
   )
 }

@@ -57,6 +57,8 @@ export const messages = {
       title: "Matches",
       subtitle: "Place or edit one pre-kickoff bet per match.",
       dateTitle: "Match date",
+      loading: "Loading matches...",
+      refreshing: "Refreshing matches...",
       emptyForDate: "No matches on {date} for this view.",
       empty: "No matches for this view.",
       views: {
@@ -67,6 +69,7 @@ export const messages = {
       },
     },
     bets: {
+      loading: "Loading bets...",
       stake: "Stake",
       stakeNote: "If your pick is correct, your stake is refunded. If not, it goes into the party fund.",
       place: "Place bet",
@@ -91,6 +94,7 @@ export const messages = {
     },
     leaderboard: {
       title: "Leaderboard",
+      loading: "Loading leaderboard...",
       partyFund: "Party fund",
       groupFund: "{group} fund",
     },
@@ -178,6 +182,8 @@ export const messages = {
       title: "Trận đấu",
       subtitle: "Đặt hoặc sửa một lựa chọn trước giờ bóng lăn.",
       dateTitle: "Ngày thi đấu",
+      loading: "Đang tải trận đấu...",
+      refreshing: "Đang cập nhật trận đấu...",
       emptyForDate: "Không có trận đấu vào {date} trong chế độ này.",
       empty: "Không có trận đấu trong chế độ này.",
       views: {
@@ -188,6 +194,7 @@ export const messages = {
       },
     },
     bets: {
+      loading: "Đang tải cược...",
       stake: "Mức cược",
       stakeNote: "Nếu chọn đúng, bạn được hoàn lại mức cược. Nếu sai, mức cược chuyển vào quỹ chung.",
       place: "Đặt cược",
@@ -212,6 +219,7 @@ export const messages = {
     },
     leaderboard: {
       title: "Bảng xếp hạng",
+      loading: "Đang tải bảng xếp hạng...",
       partyFund: "Quỹ chung",
       groupFund: "Quỹ nhóm {group}",
     },

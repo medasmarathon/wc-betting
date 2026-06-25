@@ -32,22 +32,27 @@ function AdminContent() {
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [scheduleSyncPending, setScheduleSyncPending] = useState(false)
   const [scheduleSyncMessage, setScheduleSyncMessage] = useState<string | null>(null)
+  const [loadingDashboard, setLoadingDashboard] = useState(true)
   const scheduleSyncInFlight = useRef(false)
 
-  const load = useCallback(() => {
-    Promise.all([
+  const load = useCallback(async () => {
+    try {
+      const [matchJson, userJson, logJson] = await Promise.all([
       apiFetch("/api/matches?view=all").then((response) => response.json()),
       apiFetch("/api/admin/users").then((response) => response.json()),
       apiFetch("/api/admin/audit-log").then((response) => response.json()),
-    ]).then(([matchJson, userJson, logJson]) => {
+      ])
+
       setMatches(matchJson.matches ?? [])
       setUsers(userJson.users ?? [])
       setLogs(logJson.logs ?? [])
-    })
+    } finally {
+      setLoadingDashboard(false)
+    }
   }, [apiFetch])
 
   useEffect(() => {
-    load()
+    void load()
   }, [load])
 
   const triggerScheduleSync = useCallback(async () => {
@@ -101,7 +106,10 @@ function AdminContent() {
         <div className="panel p-4">
           <h2 className="page-title font-black">Matches needing action</h2>
           <div className="mt-3 grid gap-2">
-            {matches
+            {loadingDashboard ? (
+              <DashboardPanelSkeleton rows={4} />
+            ) : (
+              matches
               .filter((match) => ["COMPLETED", "LOCKED"].includes(match.status))
               .slice(0, 6)
               .map((match) => (
@@ -109,32 +117,54 @@ function AdminContent() {
                   <span>{match.homeTeam} vs {match.awayTeam}</span>
                   <StatusBadge status={match.status} />
                 </div>
-              ))}
+              ))
+            )}
           </div>
         </div>
         <div className="panel p-4">
           <h2 className="page-title font-black">Users</h2>
           <div className="mt-3 grid gap-2 text-sm">
-            {users.map((user) => (
-              <div key={user.id} className="flex justify-between gap-2">
-                <span>{user.displayName}</span>
-                <span>{user.balance} pts</span>
-              </div>
-            ))}
+            {loadingDashboard ? (
+              <DashboardPanelSkeleton rows={5} />
+            ) : (
+              users.map((user) => (
+                <div key={user.id} className="flex justify-between gap-2">
+                  <span>{user.displayName}</span>
+                  <span>{user.balance} pts</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
         <div className="panel p-4">
           <h2 className="page-title font-black">Recent audit</h2>
           <div className="mt-3 grid gap-2 text-sm">
-            {logs.slice(0, 8).map((log) => (
-              <div key={log.id}>
-                <b>{log.action}</b> <span className="text-muted">{log.actorEmail}</span>
-              </div>
-            ))}
+            {loadingDashboard ? (
+              <DashboardPanelSkeleton rows={5} />
+            ) : (
+              logs.slice(0, 8).map((log) => (
+                <div key={log.id}>
+                  <b>{log.action}</b> <span className="text-muted">{log.actorEmail}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </section>
     </main>
+  )
+}
+
+function DashboardPanelSkeleton({ rows }: { rows: number }) {
+  return (
+    <div className="grid gap-2" role="status" aria-label="Loading admin data">
+      {Array.from({ length: rows }, (_, index) => (
+        <div key={index} className="flex justify-between gap-3" aria-hidden="true">
+          <div className="skeleton-line h-4 w-32" />
+          <div className="skeleton-line h-4 w-16" />
+        </div>
+      ))}
+    </div>
   )
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { DateFilter } from "@/components/date-filter"
 import { useI18n } from "@/components/language-provider"
@@ -28,22 +28,40 @@ function MatchesContent() {
   const [view, setView] = useState<MatchView>("all")
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(() => getLocalDateKey(new Date()))
   const [matches, setMatches] = useState<Match[]>([])
+  const [loadedView, setLoadedView] = useState<MatchView | null>(null)
+  const [loadingMatches, setLoadingMatches] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null)
+  const latestRequestId = useRef(0)
   const todayDateKey = getLocalDateKey(new Date())
 
-  const load = useCallback(() => {
-    apiFetch(`/api/matches?view=${view}`)
-      .then(async (response) => {
-        const json = await response.json()
-        if (!response.ok) throw new Error(json.error)
-        setError(null)
-        setMatches(json.matches)
-      })
-      .catch((caught) => setError(caught instanceof Error ? caught.message : "Unable to load matches"))
+  const load = useCallback(async (signal?: AbortSignal) => {
+    const requestId = latestRequestId.current + 1
+    latestRequestId.current = requestId
+
+    try {
+      const response = await apiFetch(`/api/matches?view=${view}`, { signal })
+      const json = await response.json()
+      if (!response.ok) throw new Error(json.error)
+      if (signal?.aborted || requestId !== latestRequestId.current) return
+
+      setError(null)
+      setMatches(json.matches)
+      setLoadedView(view)
+    } catch (caught) {
+      if (signal?.aborted || requestId !== latestRequestId.current) return
+      setError(caught instanceof Error ? caught.message : "Unable to load matches")
+    } finally {
+      if (!signal?.aborted && requestId === latestRequestId.current) setLoadingMatches(false)
+    }
   }, [apiFetch, view])
 
-  useEffect(() => load(), [load])
+  useEffect(() => {
+    const controller = new AbortController()
+    void Promise.resolve().then(() => load(controller.signal))
+
+    return () => controller.abort()
+  }, [load])
 
   useEffect(() => {
     const kickoffTimes = matches
@@ -67,20 +85,25 @@ function MatchesContent() {
           }
         }),
       )
-      load()
+      setLoadingMatches(true)
+      void load()
     }, Math.max(0, Math.min(nextKickoffMs - Date.now(), MAX_TIMEOUT_MS)))
 
     return () => window.clearTimeout(timeoutId)
   }, [load, matches])
 
   const filteredMatches = useMemo(() => {
+    if (loadedView !== view) return []
     if (!selectedDateKey) return matches
 
     return matches.filter((match) => getLocalDateKey(match.kickoffAt) === selectedDateKey)
-  }, [matches, selectedDateKey])
+  }, [loadedView, matches, selectedDateKey, view])
+  const isLoadingCurrentView = loadingMatches && loadedView !== view
+  const isRefreshingCurrentView = loadingMatches && loadedView === view
   const selectedDateLabel = selectedDateKey ? formatLocalDateLabel(selectedDateKey, locale) : t.common.allDates
 
   function selectView(nextView: MatchView) {
+    if (nextView !== view) setLoadingMatches(true)
     setView(nextView)
     setExpandedMatchId(null)
   }
@@ -92,7 +115,8 @@ function MatchesContent() {
 
   function handleBetPlaced() {
     setExpandedMatchId(null)
-    load()
+    setLoadingMatches(true)
+    void load()
   }
 
   return (
@@ -117,10 +141,18 @@ function MatchesContent() {
         count={filteredMatches.length}
         singularLabel={t.matches.title.toLowerCase()}
         pluralLabel={t.matches.title.toLowerCase()}
+        loadingLabel={isLoadingCurrentView ? t.matches.loading : undefined}
         onSelectDate={selectDate}
       />
       {error ? <div className="danger-text panel p-4">{error}</div> : null}
-      {filteredMatches.length ? (
+      {isRefreshingCurrentView ? (
+        <div className="panel text-subtle p-3 text-sm" role="status" aria-live="polite">
+          {t.matches.refreshing}
+        </div>
+      ) : null}
+      {isLoadingCurrentView ? (
+        <MatchListSkeleton label={t.matches.loading} />
+      ) : filteredMatches.length ? (
         <div className="grid items-start gap-4 md:grid-cols-2">
           {filteredMatches.map((match) => (
             <MatchCard
@@ -140,5 +172,36 @@ function MatchesContent() {
         </div>
       )}
     </main>
+  )
+}
+
+function MatchListSkeleton({ label }: { label: string }) {
+  return (
+    <div className="grid gap-3" role="status" aria-live="polite">
+      <div className="panel text-subtle p-4 text-sm">{label}</div>
+      <div className="grid items-start gap-4 md:grid-cols-2">
+        {Array.from({ length: 4 }, (_, index) => (
+          <MatchCardSkeleton key={index} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function MatchCardSkeleton() {
+  return (
+    <article className="panel grid gap-4 p-4" aria-hidden="true">
+      <div className="flex items-start justify-between gap-3">
+        <div className="grid flex-1 gap-3">
+          <div className="skeleton-line h-6 w-3/4" />
+          <div className="grid gap-2">
+            <div className="skeleton-line h-4 w-1/2" />
+            <div className="skeleton-line h-4 w-2/5" />
+          </div>
+        </div>
+        <div className="skeleton-line h-6 w-20 rounded-full" />
+      </div>
+      <div className="skeleton-line h-11 w-28" />
+    </article>
   )
 }

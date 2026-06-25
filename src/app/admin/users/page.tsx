@@ -3,6 +3,7 @@
 import { Button } from "@mantine/core"
 import { useCallback, useEffect, useState, type FormEvent } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
+import { CardListSkeleton, LoadingPanel } from "@/components/loading-state"
 
 type InviteRole = "USER" | "ADMIN"
 
@@ -21,6 +22,31 @@ type Group = {
   id: string
   name: string
   memberCount: number
+  fundTotal: number
+  balance: number
+  netProfit: number
+  totalBets: number
+  wonBets: number
+  lostBets: number
+  pendingBets: number
+  totalStaked: number
+  totalPayout: number
+  members: GroupMemberPerformance[]
+}
+
+type GroupMemberPerformance = {
+  id: string
+  email: string
+  displayName: string
+  isActive: boolean
+  balance: number
+  netProfit: number
+  totalBets: number
+  wonBets: number
+  lostBets: number
+  pendingBets: number
+  totalStaked: number
+  totalPayout: number
 }
 
 type InviteFormState = {
@@ -52,17 +78,22 @@ function AdminUsersContent() {
   const [invitePending, setInvitePending] = useState(false)
   const [groupName, setGroupName] = useState("")
   const [groupPending, setGroupPending] = useState(false)
+  const [loadingUsers, setLoadingUsers] = useState(true)
 
-  const load = useCallback(() => {
-    Promise.all([apiFetch("/api/admin/users"), apiFetch("/api/admin/groups")])
-      .then(async ([usersResponse, groupsResponse]) => {
-        const [usersJson, groupsJson] = await Promise.all([usersResponse.json(), groupsResponse.json()])
-        setUsers(usersJson.users ?? [])
-        setGroups(groupsJson.groups ?? [])
-      })
+  const load = useCallback(async () => {
+    try {
+      const [usersResponse, groupsResponse] = await Promise.all([apiFetch("/api/admin/users"), apiFetch("/api/admin/groups")])
+      const [usersJson, groupsJson] = await Promise.all([usersResponse.json(), groupsResponse.json()])
+      setUsers(usersJson.users ?? [])
+      setGroups(groupsJson.groups ?? [])
+    } finally {
+      setLoadingUsers(false)
+    }
   }, [apiFetch])
 
-  useEffect(() => load(), [load])
+  useEffect(() => {
+    void load()
+  }, [load])
 
   async function toggle(user: User) {
     const response = await apiFetch(`/api/admin/users/${user.id}`, {
@@ -151,6 +182,29 @@ function AdminUsersContent() {
     }
   }
 
+  async function renameGroup(group: Group, name: string) {
+    const normalizedName = name.trim()
+
+    if (!normalizedName) {
+      setMessage("Group name is required.")
+      return false
+    }
+
+    if (normalizedName === group.name) {
+      setMessage("Group name is unchanged.")
+      return false
+    }
+
+    const response = await apiFetch(`/api/admin/groups/${group.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name: normalizedName }),
+    })
+    const json = await response.json()
+    setMessage(response.ok ? "Group updated." : json.error ?? "Unable to update group")
+    if (response.ok) load()
+    return response.ok
+  }
+
   return (
     <main className="page grid gap-5">
       <h1 className="page-title text-3xl font-black">Manage users</h1>
@@ -205,32 +259,121 @@ function AdminUsersContent() {
             Create group
           </Button>
         </form>
-        {groups.length ? (
-          <div className="flex flex-wrap gap-2">
+        {loadingUsers ? (
+          <LoadingPanel label="Loading groups..." />
+        ) : groups.length ? (
+          <div className="grid gap-3">
             {groups.map((group) => (
-              <span key={group.id} className="status-badge status-bettable">
-                {group.name} · {group.memberCount}
-              </span>
+              <GroupRow key={group.id} group={group} renameGroup={renameGroup} />
             ))}
           </div>
         ) : (
           <p className="page-subtitle text-sm">No groups yet.</p>
         )}
       </section>
-      <div className="grid gap-4">
-        {users.map((user) => (
-          <UserRow
-            key={`${user.id}:${user.balance}`}
-            user={user}
-            groups={groups}
-            toggle={() => toggle(user)}
-            setPointsLeft={setPointsLeft}
-            assignGroup={assignGroup}
-          />
-        ))}
-      </div>
+      {loadingUsers ? (
+        <CardListSkeleton label="Loading users..." count={3} />
+      ) : (
+        <div className="grid gap-4">
+          {users.map((user) => (
+            <UserRow
+              key={`${user.id}:${user.balance}`}
+              user={user}
+              groups={groups}
+              toggle={() => toggle(user)}
+              setPointsLeft={setPointsLeft}
+              assignGroup={assignGroup}
+            />
+          ))}
+        </div>
+      )}
     </main>
   )
+}
+
+function GroupRow({
+  group,
+  renameGroup,
+}: {
+  group: Group
+  renameGroup: (group: Group, name: string) => Promise<boolean>
+}) {
+  const [name, setName] = useState(group.name)
+  const [pending, setPending] = useState(false)
+  const winRate = group.wonBets + group.lostBets > 0 ? Math.round((group.wonBets / (group.wonBets + group.lostBets)) * 100) : null
+
+  async function submitRename(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setPending(true)
+
+    try {
+      await renameGroup(group, name)
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <article className="grid gap-3 border-t border-[var(--border)] pt-3 first:border-t-0 first:pt-0">
+      <div className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_2fr]">
+        <form className="grid gap-2 sm:grid-cols-[minmax(160px,1fr)_auto]" onSubmit={submitRename}>
+          <input
+            aria-label={`Name for ${group.name}`}
+            className="field"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            required
+          />
+          <Button type="submit" loading={pending}>
+            Rename
+          </Button>
+        </form>
+        <div className="grid gap-2 sm:grid-cols-4">
+          <Metric label="Group fund" value={`${group.fundTotal} pts`} />
+          <Metric label="Members" value={String(group.memberCount)} />
+          <Metric label="Net" value={`${formatSigned(group.netProfit)} pts`} />
+          <Metric label="Win rate" value={winRate === null ? "No settled bets" : `${winRate}%`} />
+        </div>
+      </div>
+      {group.members.length ? (
+        <div className="grid gap-2">
+          {group.members.map((member) => (
+            <div
+              key={member.id}
+              className="grid gap-2 rounded-md border border-[var(--border)] p-3 text-sm lg:grid-cols-[minmax(180px,1fr)_repeat(5,minmax(88px,auto))]"
+            >
+              <div>
+                <div className="font-bold">{member.displayName}</div>
+                <div className="page-subtitle text-xs">
+                  {member.email} • {member.isActive ? "active" : "inactive"}
+                </div>
+              </div>
+              <Metric label="Balance" value={`${member.balance} pts`} compact />
+              <Metric label="Net" value={`${formatSigned(member.netProfit)} pts`} compact />
+              <Metric label="Bets" value={String(member.totalBets)} compact />
+              <Metric label="Won/Lost" value={`${member.wonBets}/${member.lostBets}`} compact />
+              <Metric label="Pending" value={String(member.pendingBets)} compact />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="page-subtitle text-sm">No members yet.</p>
+      )}
+    </article>
+  )
+}
+
+function Metric({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
+  return (
+    <div>
+      <div className="page-subtitle text-xs font-bold uppercase">{label}</div>
+      <div className={`page-title font-black ${compact ? "text-base" : "text-xl"}`}>{value}</div>
+    </div>
+  )
+}
+
+function formatSigned(value: number) {
+  return `${value > 0 ? "+" : ""}${value}`
 }
 
 function UserRow({

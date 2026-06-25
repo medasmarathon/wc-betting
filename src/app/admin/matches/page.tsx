@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { useI18n } from "@/components/language-provider"
+import { CardListSkeleton } from "@/components/loading-state"
 import { StatusBadge } from "@/components/status-badge"
 import { MatchupLabel } from "@/components/team-identity"
 import { formatKickoff } from "@/lib/time"
@@ -34,6 +35,7 @@ function AdminMatchesContent() {
   const { apiFetch } = useAuth()
   const [matches, setMatches] = useState<Match[]>([])
   const [message, setMessage] = useState<string | null>(null)
+  const [loadingMatches, setLoadingMatches] = useState(true)
   const [form, setForm] = useState({
     homeTeam: "",
     awayTeam: "",
@@ -44,13 +46,19 @@ function AdminMatchesContent() {
     kickoffAt: "",
   })
 
-  const load = useCallback(() => {
-    apiFetch("/api/matches?view=all")
-      .then((response) => response.json())
-      .then((json) => setMatches(json.matches ?? []))
+  const load = useCallback(async () => {
+    try {
+      const response = await apiFetch("/api/matches?view=all")
+      const json = await response.json()
+      setMatches(json.matches ?? [])
+    } finally {
+      setLoadingMatches(false)
+    }
   }, [apiFetch])
 
-  useEffect(() => load(), [load])
+  useEffect(() => {
+    void load()
+  }, [load])
 
   async function createMatch(event: React.FormEvent) {
     event.preventDefault()
@@ -106,11 +114,15 @@ function AdminMatchesContent() {
         <button className="button w-fit">Create match</button>
         {message ? <p className="text-subtle text-sm">{message}</p> : null}
       </form>
-      <div className="grid gap-4">
-        {matches.map((match) => (
-          <AdminMatchRow key={match.id} match={match} action={action} />
-        ))}
-      </div>
+      {loadingMatches ? (
+        <CardListSkeleton label="Loading matches..." count={4} />
+      ) : (
+        <div className="grid gap-4">
+          {matches.map((match) => (
+            <AdminMatchRow key={match.id} match={match} action={action} />
+          ))}
+        </div>
+      )}
     </main>
   )
 }

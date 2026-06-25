@@ -10,6 +10,7 @@ type DateFilterProps = {
   count: number
   singularLabel: string
   pluralLabel: string
+  loadingLabel?: string
   onSelectDate: (dateKey: string | null) => void
 }
 
@@ -20,6 +21,7 @@ export function DateFilter({
   count,
   singularLabel,
   pluralLabel,
+  loadingLabel,
   onSelectDate,
 }: DateFilterProps) {
   const { locale, t } = useI18n()
@@ -27,13 +29,14 @@ export function DateFilter({
   const previousDateKey = addDaysToLocalDateKey(anchorDateKey, -1)
   const nextDateKey = addDaysToLocalDateKey(anchorDateKey, 1)
   const selectedDateLabel = selectedDateKey ? formatLocalDateLabel(selectedDateKey, locale) : t.common.allDates
+  const summaryLabel = loadingLabel ?? `${count} ${count === 1 ? singularLabel : pluralLabel}`
 
   return (
     <section className="panel grid gap-4 p-3">
       <div>
         <h2 className="text-base font-black">{title}</h2>
         <p className="page-subtitle mt-1 text-sm">
-          {selectedDateLabel} - {count} {count === 1 ? singularLabel : pluralLabel}
+          {selectedDateLabel} - {summaryLabel}
         </p>
       </div>
       <div className="date-filter-actions">
