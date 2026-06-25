@@ -84,14 +84,34 @@ function AdminUsersContent() {
     load()
   }
 
-  async function adjust(userId: string, amount: string, reason: string) {
-    const response = await apiFetch(`/api/admin/users/${userId}/adjust-balance`, {
+  async function setPointsLeft(user: User, pointsLeft: string, reason: string) {
+    const normalizedPointsLeft = pointsLeft.trim()
+    const normalizedReason = reason.trim()
+    const balanceAfter = Number(normalizedPointsLeft)
+
+    if (!normalizedPointsLeft || !Number.isInteger(balanceAfter) || balanceAfter < 0) {
+      setMessage("Points left must be a whole non-negative number.")
+      return false
+    }
+
+    if (normalizedReason.length < 3) {
+      setMessage("Reason must be at least 3 characters.")
+      return false
+    }
+
+    if (balanceAfter === user.balance) {
+      setMessage("Points left is unchanged.")
+      return false
+    }
+
+    const response = await apiFetch(`/api/admin/users/${user.id}/adjust-balance`, {
       method: "POST",
-      body: JSON.stringify({ amount: Number(amount), reason }),
+      body: JSON.stringify({ balanceAfter, reason: normalizedReason }),
     })
     const json = await response.json()
-    setMessage(response.ok ? "Balance adjusted." : json.error ?? "Unable to adjust balance")
-    load()
+    setMessage(response.ok ? `Points left updated to ${balanceAfter} pts.` : json.error ?? "Unable to update points left")
+    if (response.ok) load()
+    return response.ok
   }
 
   async function invite(event: FormEvent<HTMLFormElement>) {
@@ -200,11 +220,11 @@ function AdminUsersContent() {
       <div className="grid gap-4">
         {users.map((user) => (
           <UserRow
-            key={user.id}
+            key={`${user.id}:${user.balance}`}
             user={user}
             groups={groups}
             toggle={() => toggle(user)}
-            adjust={adjust}
+            setPointsLeft={setPointsLeft}
             assignGroup={assignGroup}
           />
         ))}
@@ -217,17 +237,28 @@ function UserRow({
   user,
   groups,
   toggle,
-  adjust,
+  setPointsLeft,
   assignGroup,
 }: {
   user: User
   groups: Group[]
   toggle: () => void
-  adjust: (userId: string, amount: string, reason: string) => Promise<void>
+  setPointsLeft: (user: User, pointsLeft: string, reason: string) => Promise<boolean>
   assignGroup: (user: User, groupId: string) => Promise<void>
 }) {
-  const [amount, setAmount] = useState("")
+  const [pointsLeft, setPointsLeftInput] = useState(String(user.balance))
   const [reason, setReason] = useState("")
+  const targetBalance = pointsLeft.trim() === "" ? Number.NaN : Number(pointsLeft)
+  const hasValidTargetBalance = Number.isInteger(targetBalance) && targetBalance >= 0
+  const delta = hasValidTargetBalance ? targetBalance - user.balance : null
+  const deltaLabel = delta === null ? "Invalid" : delta === 0 ? "No change" : `${delta > 0 ? "+" : ""}${delta} pts`
+  const deltaStatusClass = delta === null || delta < 0 ? "status-danger" : delta > 0 ? "status-bettable" : "status-neutral"
+
+  async function submitPointsLeft(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const updated = await setPointsLeft(user, pointsLeft, reason)
+    if (updated) setReason("")
+  }
 
   return (
     <article className="panel grid gap-3 p-4">
@@ -241,16 +272,37 @@ function UserRow({
         </div>
         <div className="page-title text-2xl font-black">{user.balance} pts</div>
       </div>
-      <div className="grid gap-2 md:grid-cols-[120px_1fr_auto_auto]">
-        <input className="field" type="number" placeholder="Amount" value={amount} onChange={(event) => setAmount(event.target.value)} />
-        <input className="field" placeholder="Required reason" value={reason} onChange={(event) => setReason(event.target.value)} />
-        <button className="button" onClick={() => adjust(user.id, amount, reason)}>
-          Adjust
+      <form className="grid gap-2 md:grid-cols-[minmax(140px,180px)_1fr_auto_auto_auto]" onSubmit={submitPointsLeft}>
+        <input
+          aria-label={`Points left for ${user.displayName}`}
+          className="field"
+          type="number"
+          min={0}
+          step={1}
+          placeholder="Points left"
+          value={pointsLeft}
+          onChange={(event) => setPointsLeftInput(event.target.value)}
+          required
+        />
+        <input
+          aria-label={`Reason for changing points left for ${user.displayName}`}
+          className="field"
+          placeholder="Required reason"
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          minLength={3}
+          required
+        />
+        <span className={`status-badge ${deltaStatusClass} self-center justify-self-start whitespace-nowrap`}>
+          {deltaLabel}
+        </span>
+        <button className="button" type="submit">
+          Set points
         </button>
-        <button className="button secondary" onClick={toggle}>
+        <button className="button secondary" type="button" onClick={toggle}>
           {user.isActive ? "Deactivate" : "Activate"}
         </button>
-      </div>
+      </form>
       <div className="grid gap-2 md:grid-cols-[minmax(180px,1fr)_auto]">
         <select
           aria-label={`Group for ${user.displayName}`}

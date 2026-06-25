@@ -40,10 +40,26 @@ export const resultInputSchema = z.object({
   resultPick: z.enum(["HOME", "DRAW", "AWAY"]).optional(),
 })
 
-export const adjustBalanceSchema = z.object({
-  amount: z.coerce.number().int().min(-100000).max(100000).refine((value) => value !== 0),
-  reason: z.string().trim().min(3),
-})
+export const adjustBalanceSchema = z
+  .object({
+    amount: z.coerce
+      .number()
+      .int()
+      .min(-100000)
+      .max(100000)
+      .refine((value) => value !== 0)
+      .optional(),
+    balanceAfter: z.coerce.number().int().min(0).max(100000).optional(),
+    reason: z.string().trim().min(3),
+  })
+  .refine((value) => value.amount !== undefined || value.balanceAfter !== undefined, {
+    message: "Provide an adjustment amount or target balance",
+    path: ["amount"],
+  })
+  .refine((value) => value.amount === undefined || value.balanceAfter === undefined, {
+    message: "Provide either an adjustment amount or target balance",
+    path: ["balanceAfter"],
+  })
 
 export const inviteInputSchema = z.object({
   email: z.string().trim().email().transform((email) => email.toLowerCase()),

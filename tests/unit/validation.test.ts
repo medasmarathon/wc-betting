@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
-import { inviteInputSchema, placeBetSchema } from "@/lib/validation"
+import { adjustBalanceSchema, inviteInputSchema, placeBetSchema } from "@/lib/validation"
 
 describe("inviteInputSchema", () => {
   it("normalizes email and defaults to user role", () => {
@@ -42,5 +42,24 @@ describe("placeBetSchema", () => {
 
   it("rejects stakes other than the fixed stake", () => {
     expect(() => placeBetSchema.parse({ ...validBet, stake: DEFAULT_BET_STAKE + 1 })).toThrow()
+  })
+})
+
+describe("adjustBalanceSchema", () => {
+  it("accepts a target points-left balance", () => {
+    expect(adjustBalanceSchema.parse({ balanceAfter: "1200", reason: "Admin correction" })).toEqual({
+      balanceAfter: 1200,
+      reason: "Admin correction",
+    })
+  })
+
+  it("rejects ambiguous balance inputs", () => {
+    expect(() =>
+      adjustBalanceSchema.parse({ amount: 100, balanceAfter: 1200, reason: "Admin correction" }),
+    ).toThrow()
+  })
+
+  it("requires either an amount or target balance", () => {
+    expect(() => adjustBalanceSchema.parse({ reason: "Admin correction" })).toThrow()
   })
 })

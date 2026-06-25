@@ -20,7 +20,11 @@ export async function POST(request: Request, context: RouteContext) {
       const userSnap = await tx.get(userRef)
       if (!userSnap.exists) throw new Error("User not found")
       const user = userSnap.data() as UserDoc
-      const balanceAfter = user.balance + input.amount
+      const amount = input.balanceAfter === undefined ? input.amount : input.balanceAfter - user.balance
+      if (amount === undefined) throw new Error("Adjustment amount is required")
+      if (amount === 0) throw new Error("Adjustment would not change balance")
+
+      const balanceAfter = user.balance + amount
       if (balanceAfter < 0) throw new Error("Adjustment would make balance negative")
 
       tx.update(userRef, { balance: balanceAfter, updatedAt: FieldValue.serverTimestamp() })
@@ -28,7 +32,7 @@ export async function POST(request: Request, context: RouteContext) {
         userId,
         userDisplayName: user.displayName,
         type: "ADMIN_ADJUSTMENT",
-        amount: input.amount,
+        amount,
         balanceAfter,
         description: input.reason,
         createdBy: admin.uid,
@@ -52,7 +56,7 @@ export async function POST(request: Request, context: RouteContext) {
         entityType: "WALLET",
         entityId: userId,
         before: { balance: user.balance },
-        after: { amount: input.amount, balanceAfter, reason: input.reason },
+        after: { amount, balanceAfter, reason: input.reason },
         createdAt: FieldValue.serverTimestamp(),
       })
     })

@@ -16,7 +16,7 @@
   --touchline-strong: rgba(39, 52, 34, 0.3);
   --pitch-accent: #087568;
   --pitch-accent-strong: #064f48;
-  --pitch-accent-soft: #dcefeb;
+  --pitch-accent-soft: #e6f3f0;
   --trophy-support: #b78a22;
   --trophy-support-strong: #775611;
   --trophy-support-soft: #f3e7c4;
@@ -41,8 +41,8 @@
   --support: var(--trophy-support);
   --support-strong: var(--trophy-support-strong);
   --support-soft: var(--trophy-support-soft);
-  --success: #286d44;
-  --success-soft: #dfefe5;
+  --success: var(--pitch-accent);
+  --success-soft: var(--pitch-accent-soft);
   --warning: #8b6416;
   --warning-soft: #f2e6c6;
   --danger: #a83220;
