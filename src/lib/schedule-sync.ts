@@ -180,8 +180,9 @@ export function buildMatchSyncDecision(
   const fixtureKickoffMs = fixture.kickoffAt.getTime()
   const beforeKickoff = (existingKickoffMs ?? fixtureKickoffMs) > nowMs
   const ongoing = existing.status === "LIVE" || fixture.status === "LIVE"
+  const completedWithScores = fixture.status === "COMPLETED" && hasScores(fixture)
 
-  if (!beforeKickoff && !ongoing) {
+  if (!beforeKickoff && !ongoing && !completedWithScores) {
     return { operation: "skip", reason: "past-match" }
   }
 
@@ -207,7 +208,7 @@ export function buildMatchSyncDecision(
       kickoffAt: fixture.kickoffAt,
       status: fixture.status,
     })
-  } else if (fixture.status === "LIVE" || (fixture.status === "COMPLETED" && hasScores(fixture))) {
+  } else if (fixture.status === "LIVE" || completedWithScores) {
     Object.assign(data, {
       status: fixture.status,
       homeScore: fixture.homeScore,

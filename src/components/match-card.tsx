@@ -20,6 +20,9 @@ type MatchCardProps = {
     stage: string
     kickoffAt: string
     status: string
+    homeScore?: number
+    awayScore?: number
+    resultPick?: BetPick
     isBettable: boolean
     userBet?: {
       pick: BetPick
@@ -37,6 +40,7 @@ export function MatchCard({ match, expanded = false, onToggleBet, onPlaced }: Ma
   const { locale, t } = useI18n()
   const canEditBet = match.isBettable && match.userBet?.status === "PENDING"
   const canUseInlineBetSlip = match.isBettable && (!match.userBet || canEditBet)
+  const result = formatMatchResult(match, locale)
 
   return (
     <article className="panel grid self-start gap-4 p-4">
@@ -57,6 +61,12 @@ export function MatchCard({ match, expanded = false, onToggleBet, onPlaced }: Ma
         </div>
         <StatusBadge status={match.status} />
       </div>
+      {result ? (
+        <div className="score-panel p-3 text-sm">
+          <span className="match-card-meta font-medium">{t.table.result}</span>
+          <div className="page-title mt-1 text-lg font-black">{result}</div>
+        </div>
+      ) : null}
       {match.userBet ? (
         <div className="bet-summary p-3 text-sm">
           {t.bets.yourBet}: <b>{formatPickLabel(match.userBet.pick, match, locale)}</b> - <b>{unitLabel(match.userBet.stake, locale)}</b> (
@@ -82,4 +92,20 @@ export function MatchCard({ match, expanded = false, onToggleBet, onPlaced }: Ma
       ) : null}
     </article>
   )
+}
+
+function formatMatchResult(
+  match: Pick<MatchCardProps["match"], "homeTeam" | "awayTeam" | "homeScore" | "awayScore" | "resultPick">,
+  locale: ReturnType<typeof useI18n>["locale"],
+) {
+  if (match.homeScore === undefined || match.awayScore === undefined) return null
+
+  const resultPick = match.resultPick ?? calculateScorePick(match.homeScore, match.awayScore)
+  return `${match.homeScore} - ${match.awayScore} (${formatPickLabel(resultPick, match, locale)})`
+}
+
+function calculateScorePick(homeScore: number, awayScore: number): BetPick {
+  if (homeScore > awayScore) return "HOME"
+  if (homeScore < awayScore) return "AWAY"
+  return "DRAW"
 }

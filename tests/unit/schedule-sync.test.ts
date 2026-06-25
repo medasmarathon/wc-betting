@@ -258,6 +258,33 @@ describe("buildMatchSyncDecision", () => {
     expect(decision.operation).toBe("skip")
   })
 
+  it("updates completed results for past locked matches", () => {
+    const decision = buildMatchSyncDecision(
+      {
+        ...fixture,
+        homeTeam: "Changed Team",
+        status: "COMPLETED",
+        homeScore: 2,
+        awayScore: 1,
+        resultPick: "HOME",
+        resultSourceDetail: "FT",
+      },
+      { status: "LOCKED", kickoffAt: { toMillis: () => Date.parse("2026-06-11T19:00:00Z") } },
+      Date.parse("2026-06-12T00:00:00Z"),
+    )
+
+    expect(decision.operation).toBe("update")
+    if (decision.operation !== "update") throw new Error("Expected update decision")
+    expect(decision.data.homeTeam).toBeUndefined()
+    expect(decision.data).toMatchObject({
+      status: "COMPLETED",
+      homeScore: 2,
+      awayScore: 1,
+      resultPick: "HOME",
+      resultSourceDetail: "FT",
+    })
+  })
+
   it("updates live status without overwriting teams after kickoff", () => {
     const decision = buildMatchSyncDecision(
       { ...fixture, homeTeam: "Changed Team", status: "LIVE", homeScore: 1, awayScore: 0 },
