@@ -11,7 +11,6 @@ type Row = {
   wonBets?: number
   lostBets?: number
   pendingBets?: number
-  netProfit?: number
 }
 
 export function LeaderboardTable({ rows }: { rows: Row[] }) {
@@ -29,7 +28,6 @@ export function LeaderboardTable({ rows }: { rows: Row[] }) {
             <th>{t.table.wins}</th>
             <th>{t.table.losses}</th>
             <th>{t.table.pending}</th>
-            <th>{t.table.net}</th>
           </tr>
         </thead>
         <tbody>
@@ -42,7 +40,6 @@ export function LeaderboardTable({ rows }: { rows: Row[] }) {
               <td data-label={t.table.wins}>{row.wonBets ?? 0}</td>
               <td data-label={t.table.losses}>{row.lostBets ?? 0}</td>
               <td data-label={t.table.pending}>{row.pendingBets ?? 0}</td>
-              <td data-label={t.table.net}>{unitLabel(row.netProfit ?? 0, locale)}</td>
             </tr>
           ))}
         </tbody>

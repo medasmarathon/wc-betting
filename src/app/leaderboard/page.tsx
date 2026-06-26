@@ -75,7 +75,7 @@ function LeaderboardContent() {
           </div>
         ) : null}
       </div>
-      {loadingLeaderboard ? <TableSkeleton label={t.leaderboard.loading} rows={5} columns={8} /> : <LeaderboardTable rows={rows} />}
+      {loadingLeaderboard ? <TableSkeleton label={t.leaderboard.loading} rows={5} columns={7} /> : <LeaderboardTable rows={rows} />}
     </main>
   )
 }

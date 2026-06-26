@@ -930,7 +930,6 @@ Fields:
 * Wins
 * Losses
 * Pending bets
-* Net profit
 
 ### `/admin`
 

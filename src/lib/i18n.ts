@@ -116,7 +116,6 @@ export const messages = {
       wins: "Wins",
       losses: "Losses",
       pending: "Pending",
-      net: "Net",
     },
     errors: {
       teamsUnconfirmed: "Teams are not confirmed for this match",
@@ -241,7 +240,6 @@ export const messages = {
       wins: "Thắng",
       losses: "Thua",
       pending: "Đang chờ",
-      net: "Ròng",
     },
     errors: {
       teamsUnconfirmed: "Hai đội chưa được xác nhận cho trận này",
