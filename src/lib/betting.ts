@@ -22,6 +22,11 @@ export type MissingBetLossResult = {
   failed: number
 }
 
+export type InvalidSettledBetRepairResult = {
+  repaired: number
+  failed: number
+}
+
 export type PlaceBetInput = {
   matchId: string
   pick: Exclude<BetPick, "NO_BET">
@@ -56,7 +61,23 @@ export function shouldAutoLoseMissingBets(kickoffAt: MatchDoc["kickoffAt"] | Dat
 }
 
 export function shouldChargeAutomaticMissingBetLoss(user: Pick<UserDoc, "isActive" | "role">) {
-  return user.isActive && user.role === "USER"
+  return user.isActive
+}
+
+export function hasCompletedFinalScore(match: Pick<MatchDoc, "status" | "homeScore" | "awayScore">) {
+  return (
+    ["COMPLETED", "SETTLED"].includes(match.status) &&
+    match.homeScore !== undefined &&
+    match.awayScore !== undefined
+  )
+}
+
+export function shouldCreateMissingNoBetLossesOnSettlement(
+  match: Pick<MatchDoc, "status" | "homeScore" | "awayScore"> & {
+    kickoffAt: MatchDoc["kickoffAt"] | Date | string | number
+  },
+) {
+  return shouldAutoLoseMissingBets(match.kickoffAt) && hasCompletedFinalScore(match)
 }
 
 export function canMatchAcceptNewBet(params: {
@@ -327,8 +348,8 @@ export async function settleMatch(matchId: string, admin: AuthedUser, db: Firest
     if (alreadySettled && !shouldAutoLoseMissingBets(match.kickoffAt)) {
       return { settled: false, updated: false, automaticLostBets: 0 }
     }
-    if (!match.resultPick && (match.homeScore === undefined || match.awayScore === undefined)) {
-      throw new HttpError(400, "Match result is required before settlement")
+    if (!hasCompletedFinalScore(match)) {
+      throw new HttpError(400, "Match must be completed with a final score before settlement")
     }
 
     const resultPick =
@@ -344,7 +365,7 @@ export async function settleMatch(matchId: string, admin: AuthedUser, db: Firest
     const userSnaps = new Map<string, FirebaseFirestore.DocumentSnapshot>()
     const automaticLossUserSnaps: FirebaseFirestore.QueryDocumentSnapshot[] = []
 
-    if (shouldAutoLoseMissingBets(match.kickoffAt)) {
+    if (shouldCreateMissingNoBetLossesOnSettlement(match)) {
       const users = await tx.get(db.collection("users"))
       for (const userSnap of users.docs) {
         const user = userSnap.data() as UserDoc
@@ -464,11 +485,11 @@ export async function settleMatch(matchId: string, admin: AuthedUser, db: Firest
       tx.set(
         db.collection("leaderboard").doc(userSnap.id),
         {
-          userId: userSnap.id,
-          displayName: bettor.displayName,
-          balance: newBalance,
-          totalBets: FieldValue.increment(1),
-          lostBets: FieldValue.increment(1),
+        userId: userSnap.id,
+        displayName: bettor.displayName,
+        balance: newBalance,
+        totalBets: FieldValue.increment(1),
+        lostBets: FieldValue.increment(1),
           totalStaked: FieldValue.increment(DEFAULT_BET_STAKE),
           netProfit: newBalance - bettor.startingBalance,
           updatedAt: FieldValue.serverTimestamp(),
@@ -561,12 +582,11 @@ export async function applyAutomaticMissingBetLosses(
         pick: "NO_BET",
         stake: DEFAULT_BET_STAKE,
         potentialPayout: 0,
-        fundContribution: DEFAULT_BET_STAKE,
-        status: "LOST",
+        fundContribution: 0,
+        status: "PENDING",
         payout: 0,
         placedAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-        settledAt: FieldValue.serverTimestamp(),
       })
       tx.update(db.collection("users").doc(userSnap.id), {
         balance: newBalance,
@@ -590,7 +610,7 @@ export async function applyAutomaticMissingBetLosses(
           displayName: bettor.displayName,
           balance: newBalance,
           totalBets: FieldValue.increment(1),
-          lostBets: FieldValue.increment(1),
+          pendingBets: FieldValue.increment(1),
           totalStaked: FieldValue.increment(DEFAULT_BET_STAKE),
           netProfit: newBalance - bettor.startingBalance,
           updatedAt: FieldValue.serverTimestamp(),
@@ -656,6 +676,89 @@ export async function applyAutomaticMissingBetLossesForExpiredMatches(db: Firest
   return result
 }
 
+export async function resetInvalidSettledBets(db: Firestore = getAdminDb()) {
+  const result: InvalidSettledBetRepairResult = { repaired: 0, failed: 0 }
+  const snap = await db.collection("bets").where("status", "in", ["WON", "LOST"]).get()
+
+  for (const doc of snap.docs) {
+    try {
+      const repaired = await db.runTransaction(async (tx) => {
+        const betSnap = await tx.get(doc.ref)
+        if (!betSnap.exists) return false
+
+        const bet = betSnap.data() as BetDoc
+        const matchSnap = await tx.get(db.collection("matches").doc(bet.matchId))
+        if (matchSnap.exists && hasCompletedFinalScore(matchSnap.data() as MatchDoc)) return false
+
+        const payout = Number(bet.payout ?? 0)
+        const userRef = db.collection("users").doc(bet.userId)
+        const userSnap = await tx.get(userRef)
+        const bettor = userSnap.exists ? (userSnap.data() as UserDoc) : null
+        const newBalance = bettor ? bettor.balance - payout : undefined
+
+        tx.update(betSnap.ref, {
+          status: "PENDING",
+          payout: 0,
+          fundContribution: 0,
+          settledAt: FieldValue.delete(),
+          updatedAt: FieldValue.serverTimestamp(),
+        })
+
+        if (bettor && payout > 0) {
+          tx.update(userRef, {
+            balance: newBalance,
+            updatedAt: FieldValue.serverTimestamp(),
+          })
+          tx.set(db.collection("walletTransactions").doc(`payout_reversal_${betSnap.id}`), {
+            userId: bet.userId,
+            userDisplayName: bet.userDisplayName,
+            type: "ADMIN_ADJUSTMENT",
+            amount: -payout,
+            balanceAfter: newBalance,
+            betId: betSnap.id,
+            matchId: bet.matchId,
+            description: `Reversal of premature payout for ${bet.matchLabel}`,
+            createdAt: FieldValue.serverTimestamp(),
+          })
+        }
+
+        tx.set(
+          db.collection("leaderboard").doc(bet.userId),
+          {
+            userId: bet.userId,
+            displayName: bet.userDisplayName,
+            ...(newBalance !== undefined ? { balance: newBalance, netProfit: newBalance - bettor!.startingBalance } : {}),
+            pendingBets: FieldValue.increment(1),
+            wonBets: FieldValue.increment(bet.status === "WON" ? -1 : 0),
+            lostBets: FieldValue.increment(bet.status === "LOST" ? -1 : 0),
+            totalPayout: FieldValue.increment(-payout),
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        )
+        tx.set(db.collection("auditLogs").doc(), {
+          actorId: "schedule-sync",
+          actorEmail: "system",
+          action: "INVALID_SETTLED_BET_RESET",
+          entityType: "BET",
+          entityId: betSnap.id,
+          before: { status: bet.status, payout: bet.payout, fundContribution: bet.fundContribution },
+          after: { status: "PENDING", payout: 0, fundContribution: 0 },
+          createdAt: FieldValue.serverTimestamp(),
+        })
+
+        return true
+      })
+
+      if (repaired) result.repaired += 1
+    } catch {
+      result.failed += 1
+    }
+  }
+
+  return result
+}
+
 export async function settleCompletedMatches(db: Firestore = getAdminDb()) {
   const systemActor: AuthedUser = {
     uid: "schedule-sync",
@@ -679,11 +782,7 @@ export async function settleCompletedMatches(db: Firestore = getAdminDb()) {
 
   for (const doc of docsById.values()) {
     const match = doc.data() as MatchDoc
-    const hasResult = Boolean(
-      match.resultPick || (match.homeScore !== undefined && match.awayScore !== undefined),
-    )
-
-    if (!hasResult) {
+    if (!hasCompletedFinalScore(match)) {
       result.skipped += 1
       continue
     }

@@ -13,6 +13,7 @@ type AuditLog = { id: string; action: string; entityType: string; actorEmail?: s
 type ScheduleSyncResponse = {
   sync?: { source?: string; created?: number; updated?: number; skipped?: number; failed?: number }
   locked?: number
+  repairedBets?: { repaired?: number; failed?: number }
   automaticLosses?: { applied?: number; skipped?: number; failed?: number }
   settlement?: { settled?: number; updated?: number; skipped?: number; failed?: number }
 }
@@ -97,7 +98,7 @@ function AdminContent() {
           <Link className="button" href="/admin/matches">
             Manage matches
           </Link>
-          <Link className="button secondary" href="/my-bets">
+          <Link className="button secondary" href="/admin/bets">
             View all bets
           </Link>
           <Link className="button secondary" href="/admin/users">
@@ -174,6 +175,7 @@ function DashboardPanelSkeleton({ rows }: { rows: number }) {
 
 function formatScheduleSyncSuccess(result: ScheduleSyncResponse) {
   const sync = result.sync ?? {}
+  const repairedBets = result.repairedBets ?? {}
   const automaticLosses = result.automaticLosses ?? {}
   const settlement = result.settlement ?? {}
 
@@ -181,7 +183,8 @@ function formatScheduleSyncSuccess(result: ScheduleSyncResponse) {
     `Schedule sync complete${sync.source ? ` from ${sync.source}` : ""}.`,
     `Created ${sync.created ?? 0}, updated ${sync.updated ?? 0}, skipped ${sync.skipped ?? 0}, failed ${sync.failed ?? 0}.`,
     `Locked ${result.locked ?? 0}.`,
-    `Applied ${automaticLosses.applied ?? 0} automatic no-bet losses, skipped ${automaticLosses.skipped ?? 0}, failed ${automaticLosses.failed ?? 0}.`,
+    `Rechecked settled bets: reset ${repairedBets.repaired ?? 0}, failed ${repairedBets.failed ?? 0}.`,
+    `Applied ${automaticLosses.applied ?? 0} automatic no-bet stakes, skipped ${automaticLosses.skipped ?? 0}, failed ${automaticLosses.failed ?? 0}.`,
     `Settled ${settlement.settled ?? 0}, updated ${settlement.updated ?? 0}, settlement failed ${settlement.failed ?? 0}.`,
   ].join(" ")
 }

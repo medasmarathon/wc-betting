@@ -6,9 +6,11 @@ import {
   calculateResultPick,
   canMatchAcceptNewBet,
   canPlaceBet,
+  hasCompletedFinalScore,
   isMatchBettableForUser,
   shouldChargeAutomaticMissingBetLoss,
   shouldAutoLoseMissingBets,
+  shouldCreateMissingNoBetLossesOnSettlement,
 } from "@/lib/betting"
 import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
 
@@ -69,13 +71,52 @@ describe("shouldAutoLoseMissingBets", () => {
 })
 
 describe("shouldChargeAutomaticMissingBetLoss", () => {
-  it("charges active regular users", () => {
+  it("charges active users", () => {
     expect(shouldChargeAutomaticMissingBetLoss({ isActive: true, role: "USER" })).toBe(true)
+    expect(shouldChargeAutomaticMissingBetLoss({ isActive: true, role: "ADMIN" })).toBe(true)
   })
 
-  it("does not charge admins or inactive users", () => {
-    expect(shouldChargeAutomaticMissingBetLoss({ isActive: true, role: "ADMIN" })).toBe(false)
+  it("does not charge inactive users", () => {
     expect(shouldChargeAutomaticMissingBetLoss({ isActive: false, role: "USER" })).toBe(false)
+    expect(shouldChargeAutomaticMissingBetLoss({ isActive: false, role: "ADMIN" })).toBe(false)
+  })
+})
+
+describe("hasCompletedFinalScore", () => {
+  it("requires a completed match with both final scores", () => {
+    expect(hasCompletedFinalScore({ status: "COMPLETED", homeScore: 2, awayScore: 1 })).toBe(true)
+    expect(hasCompletedFinalScore({ status: "SETTLED", homeScore: 2, awayScore: 1 })).toBe(true)
+    expect(hasCompletedFinalScore({ status: "LIVE", homeScore: 2, awayScore: 1 })).toBe(false)
+    expect(hasCompletedFinalScore({ status: "COMPLETED", homeScore: 2 })).toBe(false)
+  })
+})
+
+describe("shouldCreateMissingNoBetLossesOnSettlement", () => {
+  it("requires cutoff date and a completed final score", () => {
+    expect(
+      shouldCreateMissingNoBetLossesOnSettlement({
+        kickoffAt: "2026-06-25T00:00:00.000Z",
+        status: "COMPLETED",
+        homeScore: 2,
+        awayScore: 1,
+      }),
+    ).toBe(true)
+    expect(
+      shouldCreateMissingNoBetLossesOnSettlement({
+        kickoffAt: "2026-06-24T23:59:59.999Z",
+        status: "COMPLETED",
+        homeScore: 2,
+        awayScore: 1,
+      }),
+    ).toBe(false)
+    expect(
+      shouldCreateMissingNoBetLossesOnSettlement({
+        kickoffAt: "2026-06-25T00:00:00.000Z",
+        status: "LIVE",
+        homeScore: 2,
+        awayScore: 1,
+      }),
+    ).toBe(false)
   })
 })
 
