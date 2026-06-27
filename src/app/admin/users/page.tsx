@@ -1,9 +1,11 @@
 "use client"
 
 import { Button } from "@mantine/core"
-import { useCallback, useEffect, useState, type FormEvent } from "react"
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { CardListSkeleton, LoadingPanel } from "@/components/loading-state"
+import { DEFAULT_PAGE_SIZE, PaginationControls, pageCountFor, pageItems } from "@/components/pagination-controls"
+import { getLocalDateKey } from "@/lib/time"
 
 type InviteRole = "USER" | "ADMIN"
 
@@ -16,6 +18,7 @@ type User = {
   isActive: boolean
   groupId?: string
   groupName?: string
+  createdAt?: string
 }
 
 type Group = {
@@ -78,6 +81,9 @@ function AdminUsersContent() {
   const [invitePending, setInvitePending] = useState(false)
   const [groupName, setGroupName] = useState("")
   const [groupPending, setGroupPending] = useState(false)
+  const [userFilter, setUserFilter] = useState("")
+  const [createdDateKey, setCreatedDateKey] = useState("")
+  const [usersPage, setUsersPage] = useState(1)
   const [loadingUsers, setLoadingUsers] = useState(true)
 
   const load = useCallback(async () => {
@@ -94,6 +100,24 @@ function AdminUsersContent() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const filteredUsers = useMemo(() => {
+    const normalizedUserFilter = userFilter.trim().toLowerCase()
+
+    return users.filter((user) => {
+      const matchesUser =
+        !normalizedUserFilter ||
+        user.displayName.toLowerCase().includes(normalizedUserFilter) ||
+        user.email.toLowerCase().includes(normalizedUserFilter)
+      const matchesDate = !createdDateKey || (user.createdAt && getLocalDateKey(user.createdAt) === createdDateKey)
+
+      return matchesUser && matchesDate
+    })
+  }, [createdDateKey, userFilter, users])
+
+  const usersPageCount = pageCountFor(filteredUsers.length)
+  const currentUsersPage = Math.min(usersPage, usersPageCount)
+  const visibleUsers = useMemo(() => pageItems(filteredUsers, currentUsersPage), [currentUsersPage, filteredUsers])
 
   async function toggle(user: User) {
     const response = await apiFetch(`/api/admin/users/${user.id}`, {
@@ -274,18 +298,73 @@ function AdminUsersContent() {
       {loadingUsers ? (
         <CardListSkeleton label="Loading users..." count={3} />
       ) : (
-        <div className="grid gap-4">
-          {users.map((user) => (
-            <UserRow
-              key={`${user.id}:${user.balance}`}
-              user={user}
-              groups={groups}
-              toggle={() => toggle(user)}
-              setPointsLeft={setPointsLeft}
-              assignGroup={assignGroup}
-            />
-          ))}
-        </div>
+        <section className="grid gap-3">
+          <div className="panel grid gap-3 p-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="page-title text-xl font-black">Users</h2>
+                <p className="page-subtitle mt-1 text-sm">Filter users by name, email, or account creation date.</p>
+              </div>
+              <PaginationControls
+                label="Users"
+                page={currentUsersPage}
+                pageCount={usersPageCount}
+                pageSize={DEFAULT_PAGE_SIZE}
+                totalItems={filteredUsers.length}
+                onPageChange={setUsersPage}
+              />
+            </div>
+            <div className="grid gap-2 md:grid-cols-[minmax(220px,1fr)_minmax(180px,240px)_auto]">
+              <input
+                aria-label="Filter users by name or email"
+                className="field"
+                placeholder="Filter by user"
+                value={userFilter}
+                onChange={(event) => {
+                  setUserFilter(event.target.value)
+                  setUsersPage(1)
+                }}
+              />
+              <input
+                aria-label="Filter users by created date"
+                className="field"
+                type="date"
+                value={createdDateKey}
+                onChange={(event) => {
+                  setCreatedDateKey(event.target.value)
+                  setUsersPage(1)
+                }}
+              />
+              <button
+                className="button secondary"
+                type="button"
+                onClick={() => {
+                  setUserFilter("")
+                  setCreatedDateKey("")
+                  setUsersPage(1)
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
+          </div>
+          {visibleUsers.length ? (
+            <div className="grid gap-4">
+              {visibleUsers.map((user) => (
+                <UserRow
+                  key={`${user.id}:${user.balance}`}
+                  user={user}
+                  groups={groups}
+                  toggle={() => toggle(user)}
+                  setPointsLeft={setPointsLeft}
+                  assignGroup={assignGroup}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="panel p-4 text-sm text-subtle">No users match these filters.</div>
+          )}
+        </section>
       )}
     </main>
   )

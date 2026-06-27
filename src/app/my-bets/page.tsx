@@ -5,6 +5,7 @@ import { AuthGate, useAuth } from "@/components/auth-provider"
 import { DateFilter } from "@/components/date-filter"
 import { useI18n } from "@/components/language-provider"
 import { TableSkeleton } from "@/components/loading-state"
+import { DEFAULT_PAGE_SIZE, PaginationControls, pageCountFor, pageItems } from "@/components/pagination-controls"
 import { StatusBadge } from "@/components/status-badge"
 import { TeamIdentity } from "@/components/team-identity"
 import { formatMessage, statusLabel, unitLabel, type Locale } from "@/lib/i18n"
@@ -14,6 +15,7 @@ import type { BetPick } from "@/types/betting"
 
 type Bet = {
   id: string
+  userId?: string
   userDisplayName?: string
   userEmail?: string
   matchLabel: string
@@ -50,6 +52,9 @@ function MyBetsContent() {
   const [bets, setBets] = useState<Bet[]>([])
   const [loadingBets, setLoadingBets] = useState(true)
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(() => getLocalDateKey(new Date()))
+  const [selectedUserId, setSelectedUserId] = useState("ALL")
+  const [pendingPage, setPendingPage] = useState(1)
+  const [previousPage, setPreviousPage] = useState(1)
   const todayDateKey = getLocalDateKey(new Date())
   const isAdmin = profile?.role === "ADMIN"
 
@@ -71,16 +76,38 @@ function MyBetsContent() {
   }, [apiFetch, isAdmin])
 
   const filteredBets = useMemo(() => {
-    if (!selectedDateKey) return bets
+    return bets.filter((bet) => {
+      if (selectedDateKey && getLocalDateKey(bet.kickoffAt) !== selectedDateKey) return false
+      if (isAdmin && selectedUserId !== "ALL" && bet.userId !== selectedUserId) return false
 
-    return bets.filter((bet) => getLocalDateKey(bet.kickoffAt) === selectedDateKey)
-  }, [bets, selectedDateKey])
+      return true
+    })
+  }, [bets, isAdmin, selectedDateKey, selectedUserId])
+  const userOptions = useMemo(() => {
+    const usersById = new Map<string, { id: string; label: string }>()
+
+    for (const bet of bets) {
+      if (!bet.userId) continue
+      usersById.set(bet.userId, {
+        id: bet.userId,
+        label: bet.userDisplayName ?? bet.userEmail ?? "Unknown user",
+      })
+    }
+
+    return Array.from(usersById.values()).sort((a, b) => a.label.localeCompare(b.label))
+  }, [bets])
   const dateEmptySuffix = selectedDateKey
     ? formatMessage(t.bets.onDate, { date: formatLocalDateLabel(selectedDateKey, locale) })
     : ""
 
   const pendingBets = filteredBets.filter((bet) => bet.status === "PENDING")
   const previousBets = filteredBets.filter((bet) => bet.status !== "PENDING")
+  const pendingPageCount = pageCountFor(pendingBets.length)
+  const previousPageCount = pageCountFor(previousBets.length)
+  const currentPendingPage = Math.min(pendingPage, pendingPageCount)
+  const currentPreviousPage = Math.min(previousPage, previousPageCount)
+  const visiblePendingBets = useMemo(() => pageItems(pendingBets, currentPendingPage), [currentPendingPage, pendingBets])
+  const visiblePreviousBets = useMemo(() => pageItems(previousBets, currentPreviousPage), [currentPreviousPage, previousBets])
 
   return (
     <main className="page grid gap-5">
@@ -96,27 +123,101 @@ function MyBetsContent() {
         singularLabel={t.table.bets.toLowerCase()}
         pluralLabel={t.table.bets.toLowerCase()}
         loadingLabel={loadingBets ? t.bets.loading : undefined}
-        onSelectDate={setSelectedDateKey}
+        onSelectDate={(dateKey) => {
+          setSelectedDateKey(dateKey)
+          setPendingPage(1)
+          setPreviousPage(1)
+        }}
       />
+      {isAdmin ? (
+        <section className="panel grid gap-3 p-3">
+          <div>
+            <h2 className="text-base font-black">{t.table.user}</h2>
+            <p className="page-subtitle mt-1 text-sm">{filteredBets.length} {t.table.bets.toLowerCase()}</p>
+          </div>
+          <select
+            className="field max-w-sm"
+            aria-label="Filter bets by user"
+            value={selectedUserId}
+            onChange={(event) => {
+              setSelectedUserId(event.target.value)
+              setPendingPage(1)
+              setPreviousPage(1)
+            }}
+          >
+            <option value="ALL">All users</option>
+            {userOptions.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.label}
+              </option>
+            ))}
+          </select>
+        </section>
+      ) : null}
       {loadingBets ? (
         <TableSkeleton label={t.bets.loading} rows={4} columns={10} />
       ) : (
         <>
-          <BetTable title={t.bets.pendingTitle} bets={pendingBets} empty={formatMessage(t.bets.emptyPending, { suffix: dateEmptySuffix })} showUser={isAdmin} />
-          <BetTable title={t.bets.previousTitle} bets={previousBets} empty={formatMessage(t.bets.emptySettled, { suffix: dateEmptySuffix })} showUser={isAdmin} />
+          <BetTable
+            title={t.bets.pendingTitle}
+            bets={visiblePendingBets}
+            empty={formatMessage(t.bets.emptyPending, { suffix: dateEmptySuffix })}
+            showUser={isAdmin}
+            pagination={
+              <PaginationControls
+                label={t.bets.pendingTitle}
+                page={currentPendingPage}
+                pageCount={pendingPageCount}
+                pageSize={DEFAULT_PAGE_SIZE}
+                totalItems={pendingBets.length}
+                onPageChange={setPendingPage}
+              />
+            }
+          />
+          <BetTable
+            title={t.bets.previousTitle}
+            bets={visiblePreviousBets}
+            empty={formatMessage(t.bets.emptySettled, { suffix: dateEmptySuffix })}
+            showUser={isAdmin}
+            pagination={
+              <PaginationControls
+                label={t.bets.previousTitle}
+                page={currentPreviousPage}
+                pageCount={previousPageCount}
+                pageSize={DEFAULT_PAGE_SIZE}
+                totalItems={previousBets.length}
+                onPageChange={setPreviousPage}
+              />
+            }
+          />
         </>
       )}
     </main>
   )
 }
 
-function BetTable({ title, bets, empty, showUser = false }: { title: string; bets: Bet[]; empty: string; showUser?: boolean }) {
+function BetTable({
+  title,
+  bets,
+  empty,
+  pagination,
+  showUser = false,
+}: {
+  title: string
+  bets: Bet[]
+  empty: string
+  pagination: React.ReactNode
+  showUser?: boolean
+}) {
   const { locale, t } = useI18n()
   const columnCount = showUser ? 11 : 10
 
   return (
     <section className="grid gap-3">
-      <h2 className="page-title text-xl font-black">{title}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="page-title text-xl font-black">{title}</h2>
+        {pagination}
+      </div>
       <div className="panel table-shell">
         <table className="table">
           <thead>

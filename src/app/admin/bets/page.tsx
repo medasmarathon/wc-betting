@@ -2,17 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
+import { DateFilter } from "@/components/date-filter"
 import { useI18n } from "@/components/language-provider"
 import { TableSkeleton } from "@/components/loading-state"
+import { DEFAULT_PAGE_SIZE, PaginationControls, pageCountFor, pageItems } from "@/components/pagination-controls"
 import { StatusBadge } from "@/components/status-badge"
 import { TeamIdentity } from "@/components/team-identity"
 import { statusLabel, unitLabel, type Locale } from "@/lib/i18n"
 import { formatPickLabel, teamsFromBet } from "@/lib/team-display"
-import { formatKickoff } from "@/lib/time"
+import { formatKickoff, getLocalDateKey } from "@/lib/time"
 import type { BetPick, BetStatus } from "@/types/betting"
 
 type AdminBet = {
   id: string
+  userId: string
   userDisplayName?: string
   userEmail?: string
   groupName?: string
@@ -52,8 +55,12 @@ function AdminBetsContent() {
   const { locale } = useI18n()
   const [bets, setBets] = useState<AdminBet[]>([])
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>("ALL")
+  const [selectedUserId, setSelectedUserId] = useState("ALL")
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
   const [loadingBets, setLoadingBets] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
+  const todayDateKey = getLocalDateKey(new Date())
 
   const load = useCallback(async () => {
     try {
@@ -82,10 +89,32 @@ function AdminBetsContent() {
     void load()
   }, [load])
 
+  const userOptions = useMemo(() => {
+    const usersById = new Map<string, { id: string; label: string }>()
+
+    for (const bet of bets) {
+      if (!bet.userId) continue
+      usersById.set(bet.userId, {
+        id: bet.userId,
+        label: bet.userDisplayName ?? bet.userEmail ?? "Unknown user",
+      })
+    }
+
+    return Array.from(usersById.values()).sort((a, b) => a.label.localeCompare(b.label))
+  }, [bets])
+
   const filteredBets = useMemo(() => {
-    if (statusFilter === "ALL") return bets
-    return bets.filter((bet) => bet.status === statusFilter)
-  }, [bets, statusFilter])
+    return bets.filter((bet) => {
+      if (statusFilter !== "ALL" && bet.status !== statusFilter) return false
+      if (selectedUserId !== "ALL" && bet.userId !== selectedUserId) return false
+      if (selectedDateKey && getLocalDateKey(bet.kickoffAt) !== selectedDateKey) return false
+      return true
+    })
+  }, [bets, selectedDateKey, selectedUserId, statusFilter])
+
+  const pageCount = pageCountFor(filteredBets.length)
+  const currentPage = Math.min(page, pageCount)
+  const visibleBets = useMemo(() => pageItems(filteredBets, currentPage), [currentPage, filteredBets])
 
   const summary = useMemo(() => {
     return bets.reduce(
@@ -113,10 +142,29 @@ function AdminBetsContent() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select
+            className="field min-w-48"
+            aria-label="Filter bets by user"
+            value={selectedUserId}
+            onChange={(event) => {
+              setSelectedUserId(event.target.value)
+              setPage(1)
+            }}
+          >
+            <option value="ALL">All users</option>
+            {userOptions.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.label}
+              </option>
+            ))}
+          </select>
+          <select
             className="field min-w-40"
             aria-label="Filter bets by status"
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as (typeof STATUS_FILTERS)[number])}
+            onChange={(event) => {
+              setStatusFilter(event.target.value as (typeof STATUS_FILTERS)[number])
+              setPage(1)
+            }}
           >
             {STATUS_FILTERS.map((status) => (
               <option key={status} value={status}>
@@ -132,6 +180,20 @@ function AdminBetsContent() {
 
       {message ? <div className="panel p-3 text-sm text-subtle">{message}</div> : null}
 
+      <DateFilter
+        title="Match date"
+        selectedDateKey={selectedDateKey}
+        todayDateKey={todayDateKey}
+        count={filteredBets.length}
+        singularLabel="bet"
+        pluralLabel="bets"
+        loadingLabel={loadingBets ? "Loading user bets..." : undefined}
+        onSelectDate={(dateKey) => {
+          setSelectedDateKey(dateKey)
+          setPage(1)
+        }}
+      />
+
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <SummaryTile label="Total bets" value={summary.total.toString()} />
         <SummaryTile label="Total staked" value={unitLabel(summary.staked, locale)} />
@@ -143,7 +205,20 @@ function AdminBetsContent() {
       {loadingBets ? (
         <TableSkeleton label="Loading user bets..." rows={6} columns={12} />
       ) : (
-        <AdminBetTable bets={filteredBets} locale={locale} />
+        <AdminBetTable
+          bets={visibleBets}
+          locale={locale}
+          pagination={
+            <PaginationControls
+              label="Bets"
+              page={currentPage}
+              pageCount={pageCount}
+              pageSize={DEFAULT_PAGE_SIZE}
+              totalItems={filteredBets.length}
+              onPageChange={setPage}
+            />
+          }
+        />
       )}
     </main>
   )
@@ -158,10 +233,13 @@ function SummaryTile({ label, value }: { label: string; value: string }) {
   )
 }
 
-function AdminBetTable({ bets, locale }: { bets: AdminBet[]; locale: Locale }) {
+function AdminBetTable({ bets, locale, pagination }: { bets: AdminBet[]; locale: Locale; pagination: React.ReactNode }) {
   return (
     <section className="grid gap-3">
-      <h2 className="page-title text-xl font-black">Bet details</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="page-title text-xl font-black">Bet details</h2>
+        {pagination}
+      </div>
       <div className="panel table-shell">
         <table className="table">
           <thead>
