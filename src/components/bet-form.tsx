@@ -10,7 +10,9 @@ import { formatMessage, unitLabel } from "@/lib/i18n"
 import { formatPickLabel, getPickTeam } from "@/lib/team-display"
 import type { BetPick } from "@/types/betting"
 
-const PICK_OPTIONS: BetPick[] = ["HOME", "DRAW", "AWAY"]
+type PlayableBetPick = Exclude<BetPick, "NO_BET">
+
+const PICK_OPTIONS: PlayableBetPick[] = ["HOME", "DRAW", "AWAY"]
 
 type BetFormProps = {
   match: {
@@ -32,7 +34,8 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
   const { locale, t } = useI18n()
   const { apiFetch } = useAuth()
   const isEditing = Boolean(match.userBet)
-  const [pick, setPick] = useState<BetPick>(match.userBet?.pick ?? "HOME")
+  const initialPick = match.userBet?.pick === "NO_BET" ? "HOME" : (match.userBet?.pick ?? "HOME")
+  const [pick, setPick] = useState<PlayableBetPick>(initialPick)
   const [message, setMessage] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 

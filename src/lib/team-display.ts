@@ -93,6 +93,10 @@ const FIFA_FLAG_CODES: Record<string, string> = {
 }
 
 export function isBetPick(value: MaybePick): value is BetPick {
+  return value === "HOME" || value === "DRAW" || value === "AWAY" || value === "NO_BET"
+}
+
+export function isPlayableBetPick(value: MaybePick): value is Exclude<BetPick, "NO_BET"> {
   return value === "HOME" || value === "DRAW" || value === "AWAY"
 }
 

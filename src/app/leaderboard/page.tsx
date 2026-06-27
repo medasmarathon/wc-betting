@@ -59,21 +59,17 @@ function LeaderboardContent() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="page-title text-3xl font-black">{t.leaderboard.title}</h1>
         <div className="panel px-4 py-3">
-          <div className="page-subtitle text-sm font-bold">{t.leaderboard.partyFund}</div>
+          <div className="page-subtitle text-sm font-bold">
+            {userGroup ? formatMessage(t.leaderboard.groupFund, { group: userGroup.name }) : t.leaderboard.partyFund}
+          </div>
           {loadingLeaderboard ? (
             <div className="skeleton-line mt-1 h-8 w-24" aria-hidden="true" />
           ) : (
-            <div className="page-title text-2xl font-black">{unitLabel(confirmedFundTotal, locale)}</div>
+            <div className="page-title text-2xl font-black">
+              {unitLabel(userGroup ? (groupFundTotal ?? 0) : confirmedFundTotal, locale)}
+            </div>
           )}
         </div>
-        {userGroup ? (
-          <div className="panel px-4 py-3">
-            <div className="page-subtitle text-sm font-bold">
-              {formatMessage(t.leaderboard.groupFund, { group: userGroup.name })}
-            </div>
-            <div className="page-title text-2xl font-black">{unitLabel(groupFundTotal ?? 0, locale)}</div>
-          </div>
-        ) : null}
       </div>
       {loadingLeaderboard ? <TableSkeleton label={t.leaderboard.loading} rows={5} columns={7} /> : <LeaderboardTable rows={rows} />}
     </main>

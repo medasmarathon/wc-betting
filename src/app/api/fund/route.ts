@@ -27,18 +27,17 @@ export async function GET(request: Request) {
         }, 0)
       : undefined
 
-    return Response.json({
-      confirmedFundTotal,
-      ...(user.groupId
-        ? {
-            groupFundTotal,
-            userGroup: {
-              id: user.groupId,
-              name: user.groupName ?? "Group",
-            },
-          }
-        : {}),
-    })
+    if (user.groupId) {
+      return Response.json({
+        groupFundTotal,
+        userGroup: {
+          id: user.groupId,
+          name: user.groupName ?? "Group",
+        },
+      })
+    }
+
+    return Response.json({ confirmedFundTotal })
   } catch (error) {
     return handleRouteError(error)
   }

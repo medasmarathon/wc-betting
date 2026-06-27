@@ -49,6 +49,7 @@ export const messages = {
       dateNavigation: "Date navigation",
       unit: "points",
       draw: "Draw",
+      noBet: "No bet",
       tbd: "TBD",
       homeTeam: "Home team",
       awayTeam: "Away team",
@@ -173,6 +174,7 @@ export const messages = {
       dateNavigation: "Điều hướng ngày",
       unit: "đơn vị",
       draw: "Hòa",
+      noBet: "Không đặt",
       tbd: "Chưa xác định",
       homeTeam: "Đội nhà",
       awayTeam: "Đội khách",
@@ -284,6 +286,7 @@ export function pickLabel(
   if (pick === "HOME") return teams.homeTeam
   if (pick === "AWAY") return teams.awayTeam
   if (pick === "DRAW") return messages[locale].common.draw
+  if (pick === "NO_BET") return messages[locale].common.noBet
   return pick ?? messages[locale].common.tbd
 }
 

@@ -15,7 +15,7 @@ export type MatchStatus =
   | "COMPLETED"
   | "SETTLED"
   | "VOIDED"
-export type BetPick = "HOME" | "DRAW" | "AWAY"
+export type BetPick = "HOME" | "DRAW" | "AWAY" | "NO_BET"
 export type BetStatus = "PENDING" | "WON" | "LOST" | "VOIDED"
 export type WalletTransactionType =
   | "INITIAL_CREDIT"

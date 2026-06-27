@@ -29,6 +29,10 @@ describe("formatPickLabel", () => {
   it("localizes DRAW to Vietnamese", () => {
     expect(formatPickLabel("DRAW", teams, "vi")).toBe("Hòa")
   })
+
+  it("labels automatic missing bets", () => {
+    expect(formatPickLabel("NO_BET", teams)).toBe("No bet")
+  })
 })
 
 describe("getFlagIconCode", () => {

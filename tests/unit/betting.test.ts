@@ -7,6 +7,7 @@ import {
   canMatchAcceptNewBet,
   canPlaceBet,
   isMatchBettableForUser,
+  shouldAutoLoseMissingBets,
 } from "@/lib/betting"
 import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
 
@@ -53,6 +54,16 @@ describe("calculateFundContribution", () => {
 describe("DEFAULT_BET_STAKE", () => {
   it("defaults new bet slips to 10 points", () => {
     expect(DEFAULT_BET_STAKE).toBe(10)
+  })
+})
+
+describe("shouldAutoLoseMissingBets", () => {
+  it("does not apply before June 25, 2026", () => {
+    expect(shouldAutoLoseMissingBets("2026-06-24T23:59:59.999Z")).toBe(false)
+  })
+
+  it("applies starting June 25, 2026", () => {
+    expect(shouldAutoLoseMissingBets("2026-06-25T00:00:00.000Z")).toBe(true)
   })
 })
 
