@@ -13,6 +13,7 @@ type AuditLog = { id: string; action: string; entityType: string; actorEmail?: s
 type ScheduleSyncResponse = {
   sync?: { source?: string; created?: number; updated?: number; skipped?: number; failed?: number }
   locked?: number
+  automaticLosses?: { applied?: number; skipped?: number; failed?: number }
   settlement?: { settled?: number; updated?: number; skipped?: number; failed?: number }
 }
 type ScheduleSyncError = { error?: string; retryAfterSeconds?: number; nextAllowedAt?: string }
@@ -96,6 +97,9 @@ function AdminContent() {
           <Link className="button" href="/admin/matches">
             Manage matches
           </Link>
+          <Link className="button secondary" href="/my-bets">
+            View all bets
+          </Link>
           <Link className="button secondary" href="/admin/users">
             Manage users
           </Link>
@@ -170,12 +174,14 @@ function DashboardPanelSkeleton({ rows }: { rows: number }) {
 
 function formatScheduleSyncSuccess(result: ScheduleSyncResponse) {
   const sync = result.sync ?? {}
+  const automaticLosses = result.automaticLosses ?? {}
   const settlement = result.settlement ?? {}
 
   return [
     `Schedule sync complete${sync.source ? ` from ${sync.source}` : ""}.`,
     `Created ${sync.created ?? 0}, updated ${sync.updated ?? 0}, skipped ${sync.skipped ?? 0}, failed ${sync.failed ?? 0}.`,
     `Locked ${result.locked ?? 0}.`,
+    `Applied ${automaticLosses.applied ?? 0} automatic no-bet losses, skipped ${automaticLosses.skipped ?? 0}, failed ${automaticLosses.failed ?? 0}.`,
     `Settled ${settlement.settled ?? 0}, updated ${settlement.updated ?? 0}, settlement failed ${settlement.failed ?? 0}.`,
   ].join(" ")
 }

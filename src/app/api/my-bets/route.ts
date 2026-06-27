@@ -8,10 +8,13 @@ export async function GET(request: Request) {
     const user = await requireUser(request)
     const url = new URL(request.url)
     const status = url.searchParams.get("status")
-    let query: FirebaseFirestore.Query = getAdminDb()
-      .collection("bets")
-      .where("userId", "==", user.uid)
-      .orderBy("placedAt", "desc")
+    const includeAllUsers = user.role === "ADMIN" && url.searchParams.get("scope") === "all"
+    let query: FirebaseFirestore.Query = includeAllUsers
+      ? getAdminDb().collection("bets").orderBy("placedAt", "desc")
+      : getAdminDb()
+          .collection("bets")
+          .where("userId", "==", user.uid)
+          .orderBy("placedAt", "desc")
 
     if (status && status !== "ALL") {
       query = query.where("status", "==", status)

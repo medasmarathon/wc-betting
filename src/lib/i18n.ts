@@ -91,6 +91,7 @@ export const messages = {
     },
     myBets: {
       title: "My bets",
+      allTitle: "All bets",
       subtitle: "Track pending picks and settled party fund results.",
     },
     leaderboard: {
@@ -100,6 +101,7 @@ export const messages = {
       groupFund: "{group} fund",
     },
     table: {
+      user: "User",
       match: "Match",
       kickoff: "Kickoff",
       pick: "Pick",
@@ -216,6 +218,7 @@ export const messages = {
     },
     myBets: {
       title: "Cược của tôi",
+      allTitle: "Tất cả cược",
       subtitle: "Theo dõi lựa chọn đang chờ và kết quả quỹ chung.",
     },
     leaderboard: {
@@ -225,6 +228,7 @@ export const messages = {
       groupFund: "Quỹ nhóm {group}",
     },
     table: {
+      user: "Người chơi",
       match: "Trận",
       kickoff: "Giờ đá",
       pick: "Lựa chọn",

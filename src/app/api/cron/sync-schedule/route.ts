@@ -1,4 +1,4 @@
-import { settleCompletedMatches } from "@/lib/betting"
+import { applyAutomaticMissingBetLossesForExpiredMatches, settleCompletedMatches } from "@/lib/betting"
 import { handleRouteError, requireAdmin } from "@/lib/auth"
 import { claimScheduleSyncSlot } from "@/lib/schedule-sync-rate-limit"
 import { lockExpiredOpenMatches, syncWorldCupSchedule } from "@/lib/schedule-sync"
@@ -35,9 +35,10 @@ export async function GET(request: Request) {
 
     const sync = await syncWorldCupSchedule()
     const locked = await lockExpiredOpenMatches()
+    const automaticLosses = await applyAutomaticMissingBetLossesForExpiredMatches()
     const settlement = await settleCompletedMatches()
 
-    return Response.json({ sync, locked, settlement }, { headers: { "Cache-Control": "no-store" } })
+    return Response.json({ sync, locked, automaticLosses, settlement }, { headers: { "Cache-Control": "no-store" } })
   } catch (error) {
     return handleRouteError(error)
   }

@@ -7,6 +7,7 @@ import {
   canMatchAcceptNewBet,
   canPlaceBet,
   isMatchBettableForUser,
+  shouldChargeAutomaticMissingBetLoss,
   shouldAutoLoseMissingBets,
 } from "@/lib/betting"
 import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
@@ -58,12 +59,23 @@ describe("DEFAULT_BET_STAKE", () => {
 })
 
 describe("shouldAutoLoseMissingBets", () => {
-  it("does not apply on June 25, 2026", () => {
-    expect(shouldAutoLoseMissingBets("2026-06-25T23:59:59.999Z")).toBe(false)
+  it("does not apply before June 25, 2026", () => {
+    expect(shouldAutoLoseMissingBets("2026-06-24T23:59:59.999Z")).toBe(false)
   })
 
-  it("applies after June 25, 2026", () => {
-    expect(shouldAutoLoseMissingBets("2026-06-26T00:00:00.000Z")).toBe(true)
+  it("applies on June 25, 2026", () => {
+    expect(shouldAutoLoseMissingBets("2026-06-25T00:00:00.000Z")).toBe(true)
+  })
+})
+
+describe("shouldChargeAutomaticMissingBetLoss", () => {
+  it("charges active regular users", () => {
+    expect(shouldChargeAutomaticMissingBetLoss({ isActive: true, role: "USER" })).toBe(true)
+  })
+
+  it("does not charge admins or inactive users", () => {
+    expect(shouldChargeAutomaticMissingBetLoss({ isActive: true, role: "ADMIN" })).toBe(false)
+    expect(shouldChargeAutomaticMissingBetLoss({ isActive: false, role: "USER" })).toBe(false)
   })
 })
 

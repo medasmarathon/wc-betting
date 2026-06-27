@@ -14,6 +14,8 @@ import type { BetPick } from "@/types/betting"
 
 type Bet = {
   id: string
+  userDisplayName?: string
+  userEmail?: string
   matchLabel: string
   homeTeam?: string
   awayTeam?: string
@@ -44,16 +46,17 @@ export default function MyBetsPage() {
 
 function MyBetsContent() {
   const { locale, t } = useI18n()
-  const { apiFetch } = useAuth()
+  const { apiFetch, profile } = useAuth()
   const [bets, setBets] = useState<Bet[]>([])
   const [loadingBets, setLoadingBets] = useState(true)
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(() => getLocalDateKey(new Date()))
   const todayDateKey = getLocalDateKey(new Date())
+  const isAdmin = profile?.role === "ADMIN"
 
   useEffect(() => {
     let cancelled = false
 
-    apiFetch("/api/my-bets")
+    apiFetch(`/api/my-bets${isAdmin ? "?scope=all" : ""}`)
       .then((response) => response.json())
       .then((json) => {
         if (!cancelled) setBets(json.bets ?? [])
@@ -65,7 +68,7 @@ function MyBetsContent() {
     return () => {
       cancelled = true
     }
-  }, [apiFetch])
+  }, [apiFetch, isAdmin])
 
   const filteredBets = useMemo(() => {
     if (!selectedDateKey) return bets
@@ -82,7 +85,7 @@ function MyBetsContent() {
   return (
     <main className="page grid gap-5">
       <div>
-        <h1 className="page-title text-3xl font-black">{t.myBets.title}</h1>
+        <h1 className="page-title text-3xl font-black">{isAdmin ? t.myBets.allTitle : t.myBets.title}</h1>
         <p className="page-subtitle mt-1 text-sm">{t.myBets.subtitle}</p>
       </div>
       <DateFilter
@@ -99,16 +102,17 @@ function MyBetsContent() {
         <TableSkeleton label={t.bets.loading} rows={4} columns={10} />
       ) : (
         <>
-          <BetTable title={t.bets.pendingTitle} bets={pendingBets} empty={formatMessage(t.bets.emptyPending, { suffix: dateEmptySuffix })} />
-          <BetTable title={t.bets.previousTitle} bets={previousBets} empty={formatMessage(t.bets.emptySettled, { suffix: dateEmptySuffix })} />
+          <BetTable title={t.bets.pendingTitle} bets={pendingBets} empty={formatMessage(t.bets.emptyPending, { suffix: dateEmptySuffix })} showUser={isAdmin} />
+          <BetTable title={t.bets.previousTitle} bets={previousBets} empty={formatMessage(t.bets.emptySettled, { suffix: dateEmptySuffix })} showUser={isAdmin} />
         </>
       )}
     </main>
   )
 }
 
-function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: string }) {
+function BetTable({ title, bets, empty, showUser = false }: { title: string; bets: Bet[]; empty: string; showUser?: boolean }) {
   const { locale, t } = useI18n()
+  const columnCount = showUser ? 11 : 10
 
   return (
     <section className="grid gap-3">
@@ -117,6 +121,7 @@ function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: s
         <table className="table">
           <thead>
             <tr>
+              {showUser ? <th>{t.table.user}</th> : null}
               <th>{t.table.match}</th>
               <th>{t.table.kickoff}</th>
               <th>{t.table.pick}</th>
@@ -135,6 +140,14 @@ function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: s
                 const teams = teamsFromBet(bet, locale)
                 return (
                   <tr key={bet.id}>
+                    {showUser ? (
+                      <td data-label={t.table.user}>
+                        <div className="grid min-w-0 gap-1">
+                          <span className="page-title font-bold">{bet.userDisplayName ?? bet.userEmail ?? "Unknown user"}</span>
+                          {bet.userEmail ? <span className="text-muted text-xs">{bet.userEmail}</span> : null}
+                        </div>
+                      </td>
+                    ) : null}
                     <td data-label={t.table.match} className="page-title font-bold">
                       <div className="grid min-w-0 gap-1">
                         <TeamIdentity team={teams.homeTeam} teamCode={teams.homeTeamCode} compact />
@@ -156,7 +169,7 @@ function BetTable({ title, bets, empty }: { title: string; bets: Bet[]; empty: s
               })
             ) : (
               <tr>
-                <td colSpan={10} className="table-empty text-subtle">
+                <td colSpan={columnCount} className="table-empty text-subtle">
                   {empty}
                 </td>
               </tr>
