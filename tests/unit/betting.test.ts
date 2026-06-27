@@ -58,12 +58,12 @@ describe("DEFAULT_BET_STAKE", () => {
 })
 
 describe("shouldAutoLoseMissingBets", () => {
-  it("does not apply before June 25, 2026", () => {
-    expect(shouldAutoLoseMissingBets("2026-06-24T23:59:59.999Z")).toBe(false)
+  it("does not apply on June 25, 2026", () => {
+    expect(shouldAutoLoseMissingBets("2026-06-25T23:59:59.999Z")).toBe(false)
   })
 
-  it("applies starting June 25, 2026", () => {
-    expect(shouldAutoLoseMissingBets("2026-06-25T00:00:00.000Z")).toBe(true)
+  it("applies after June 25, 2026", () => {
+    expect(shouldAutoLoseMissingBets("2026-06-26T00:00:00.000Z")).toBe(true)
   })
 })
 

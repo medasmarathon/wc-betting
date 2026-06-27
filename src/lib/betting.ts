@@ -7,7 +7,14 @@ import type { AuthedUser } from "@/lib/auth"
 import { HttpError } from "@/lib/auth"
 import type { BetDoc, BetPick, MatchDoc, UserDoc } from "@/types/betting"
 
-const AUTOMATIC_MISSING_BET_LOSS_START_MS = Date.UTC(2026, 6, 25)
+export const AUTOMATIC_MISSING_BET_LOSS_START_DATE = "2026-06-25"
+const AUTOMATIC_MISSING_BET_LOSS_START_MS = Date.UTC(2026, 5, 25)
+
+export type SettlementResult = {
+  settled: boolean
+  updated: boolean
+  automaticLostBets: number
+}
 
 export type PlaceBetInput = {
   matchId: string
@@ -301,13 +308,15 @@ export async function enterResult(
 export async function settleMatch(matchId: string, admin: AuthedUser, db: Firestore = getAdminDb()) {
   const matchRef = db.collection("matches").doc(matchId)
 
-  await db.runTransaction(async (tx) => {
+  return db.runTransaction<SettlementResult>(async (tx) => {
     const matchSnap = await tx.get(matchRef)
     if (!matchSnap.exists) throw new HttpError(404, "Match not found")
 
     const match = matchSnap.data() as MatchDoc
     const alreadySettled = match.status === "SETTLED"
-    if (alreadySettled && !shouldAutoLoseMissingBets(match.kickoffAt)) return
+    if (alreadySettled && !shouldAutoLoseMissingBets(match.kickoffAt)) {
+      return { settled: false, updated: false, automaticLostBets: 0 }
+    }
     if (!match.resultPick && (match.homeScore === undefined || match.awayScore === undefined)) {
       throw new HttpError(400, "Match result is required before settlement")
     }
@@ -323,12 +332,12 @@ export async function settleMatch(matchId: string, admin: AuthedUser, db: Firest
     const pendingBets = matchBets.docs.filter((doc) => (doc.data() as BetDoc).status === "PENDING")
     const existingBetUserIds = new Set(matchBets.docs.map((doc) => String((doc.data() as Partial<BetDoc>).userId)))
     const userSnaps = new Map<string, FirebaseFirestore.DocumentSnapshot>()
-    const activeUserSnaps: FirebaseFirestore.QueryDocumentSnapshot[] = []
+    const automaticLossUserSnaps: FirebaseFirestore.QueryDocumentSnapshot[] = []
 
     if (shouldAutoLoseMissingBets(match.kickoffAt)) {
-      const activeUsers = await tx.get(db.collection("users").where("isActive", "==", true))
-      for (const userSnap of activeUsers.docs) {
-        activeUserSnaps.push(userSnap)
+      const users = await tx.get(db.collection("users"))
+      for (const userSnap of users.docs) {
+        automaticLossUserSnaps.push(userSnap)
         userSnaps.set(userSnap.id, userSnap)
       }
     }
@@ -393,7 +402,7 @@ export async function settleMatch(matchId: string, admin: AuthedUser, db: Firest
     }
 
     let automaticLostBets = 0
-    for (const userSnap of activeUserSnaps) {
+    for (const userSnap of automaticLossUserSnaps) {
       if (existingBetUserIds.has(userSnap.id)) continue
 
       const bettor = userSnap.data() as UserDoc
@@ -485,6 +494,12 @@ export async function settleMatch(matchId: string, admin: AuthedUser, db: Firest
         createdAt: FieldValue.serverTimestamp(),
       })
     }
+
+    return {
+      settled: !alreadySettled,
+      updated: alreadySettled && automaticLostBets > 0,
+      automaticLostBets,
+    }
   })
 }
 
@@ -496,10 +511,20 @@ export async function settleCompletedMatches(db: Firestore = getAdminDb()) {
     role: "ADMIN",
     isActive: true,
   }
-  const result = { settled: 0, skipped: 0, failed: 0 }
-  const snap = await db.collection("matches").where("status", "==", "COMPLETED").get()
+  const result = { settled: 0, updated: 0, skipped: 0, failed: 0 }
+  const [completedSnap, settledSnap] = await Promise.all([
+    db.collection("matches").where("status", "==", "COMPLETED").get(),
+    db.collection("matches").where("status", "==", "SETTLED").get(),
+  ])
+  const docsById = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>()
 
-  for (const doc of snap.docs) {
+  for (const doc of completedSnap.docs) docsById.set(doc.id, doc)
+  for (const doc of settledSnap.docs) {
+    const match = doc.data() as MatchDoc
+    if (shouldAutoLoseMissingBets(match.kickoffAt)) docsById.set(doc.id, doc)
+  }
+
+  for (const doc of docsById.values()) {
     const match = doc.data() as MatchDoc
     const hasResult = Boolean(
       match.resultPick || (match.homeScore !== undefined && match.awayScore !== undefined),
@@ -511,8 +536,10 @@ export async function settleCompletedMatches(db: Firestore = getAdminDb()) {
     }
 
     try {
-      await settleMatch(doc.id, systemActor, db)
-      result.settled += 1
+      const settlement = await settleMatch(doc.id, systemActor, db)
+      if (settlement.settled) result.settled += 1
+      else if (settlement.updated) result.updated += 1
+      else result.skipped += 1
     } catch {
       result.failed += 1
     }

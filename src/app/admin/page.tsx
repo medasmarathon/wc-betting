@@ -13,7 +13,7 @@ type AuditLog = { id: string; action: string; entityType: string; actorEmail?: s
 type ScheduleSyncResponse = {
   sync?: { source?: string; created?: number; updated?: number; skipped?: number; failed?: number }
   locked?: number
-  settlement?: { settled?: number; skipped?: number; failed?: number }
+  settlement?: { settled?: number; updated?: number; skipped?: number; failed?: number }
 }
 type ScheduleSyncError = { error?: string; retryAfterSeconds?: number; nextAllowedAt?: string }
 
@@ -176,7 +176,7 @@ function formatScheduleSyncSuccess(result: ScheduleSyncResponse) {
     `Schedule sync complete${sync.source ? ` from ${sync.source}` : ""}.`,
     `Created ${sync.created ?? 0}, updated ${sync.updated ?? 0}, skipped ${sync.skipped ?? 0}, failed ${sync.failed ?? 0}.`,
     `Locked ${result.locked ?? 0}.`,
-    `Settled ${settlement.settled ?? 0}, settlement failed ${settlement.failed ?? 0}.`,
+    `Settled ${settlement.settled ?? 0}, updated ${settlement.updated ?? 0}, settlement failed ${settlement.failed ?? 0}.`,
   ].join(" ")
 }
 
