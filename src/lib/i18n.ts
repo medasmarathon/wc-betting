@@ -18,7 +18,7 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 export const messages = {
   en: {
     app: {
-      name: "World Cup Bets",
+      name: "Happy BWID",
       description: "Private World Cup betting pool using points only",
     },
     auth: {

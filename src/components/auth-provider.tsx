@@ -190,7 +190,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="app-header">
         <div className="app-header-inner">
           <Link href="/matches" className="brand-link">
-            World Cup Bets
+            Happy BWID
           </Link>
           <nav className="app-nav">
             {links.map((link) => (
