@@ -7,6 +7,7 @@ import { useI18n } from "@/components/language-provider"
 import { TeamIdentity } from "@/components/team-identity"
 import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
 import { formatMessage, unitLabel } from "@/lib/i18n"
+import { isKnockoutStage } from "@/lib/match-rules"
 import { formatPickLabel, getPickTeam } from "@/lib/team-display"
 import type { BetPick } from "@/types/betting"
 
@@ -21,6 +22,7 @@ type BetFormProps = {
     awayTeam: string
     homeTeamCode?: string
     awayTeamCode?: string
+    stage: string
     userBet?: {
       pick: BetPick
       stake: number
@@ -34,13 +36,21 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
   const { locale, t } = useI18n()
   const { apiFetch } = useAuth()
   const isEditing = Boolean(match.userBet)
-  const initialPick = match.userBet?.pick === "NO_BET" ? "HOME" : (match.userBet?.pick ?? "HOME")
+  const isDrawDisabled = isKnockoutStage(match.stage)
+  const initialPick =
+    match.userBet?.pick === "NO_BET" || (match.userBet?.pick === "DRAW" && isDrawDisabled)
+      ? "HOME"
+      : (match.userBet?.pick ?? "HOME")
   const [pick, setPick] = useState<PlayableBetPick>(initialPick)
   const [message, setMessage] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
+    if (pick === "DRAW" && isDrawDisabled) {
+      setMessage(t.errors.drawNotAvailable)
+      return
+    }
     setPending(true)
     setMessage(null)
     try {
@@ -73,13 +83,15 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
         <div className="bet-pick-grid">
           {PICK_OPTIONS.map((option) => {
             const pickTeam = getPickTeam(option, match)
+            const optionDisabled = pending || (option === "DRAW" && isDrawDisabled)
             return (
               <button
                 key={option}
                 type="button"
                 className="bet-pick-button"
                 aria-pressed={pick === option}
-                disabled={pending}
+                disabled={optionDisabled}
+                title={option === "DRAW" && isDrawDisabled ? t.errors.drawNotAvailable : undefined}
                 onClick={() => setPick(option)}
               >
                 {pickTeam ? (

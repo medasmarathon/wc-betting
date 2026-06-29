@@ -173,6 +173,14 @@ describe("canPlaceBet", () => {
   it("blocks matches whose teams are not confirmed", () => {
     expect(canPlaceBet({ ...base, teamsConfirmed: false }).reason).toMatch(/not confirmed/i)
   })
+
+  it("blocks draw bets for knockout matches", () => {
+    expect(canPlaceBet({ ...base, pick: "DRAW", matchStage: "ROUND_OF_16" }).reason).toMatch(/not available/i)
+  })
+
+  it("allows draw bets for group matches", () => {
+    expect(canPlaceBet({ ...base, pick: "DRAW", matchStage: "GROUP" }).ok).toBe(true)
+  })
 })
 
 describe("canMatchAcceptNewBet", () => {

@@ -2,6 +2,7 @@ import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
 import { getAdminDb } from "@/lib/firebase/admin"
 import { DEFAULT_LOCALE, formatMessage, messages, unitLabel, type Locale } from "@/lib/i18n"
+import { isKnockoutStage } from "@/lib/match-rules"
 import { toDate } from "@/lib/time"
 import type { AuthedUser } from "@/lib/auth"
 import { HttpError } from "@/lib/auth"
@@ -114,6 +115,8 @@ export function canPlaceBet(params: {
   teamsConfirmed?: boolean
   userBalance: number
   stake: number
+  pick?: Exclude<BetPick, "NO_BET">
+  matchStage?: MatchDoc["stage"]
   existingBet?: Pick<BetDoc, "stake" | "status"> | null
   locale?: Locale
 }) {
@@ -126,6 +129,9 @@ export function canPlaceBet(params: {
   }
   if (params.existingBet && params.existingBet.status !== "PENDING") {
     return { ok: false, reason: t.errors.editPendingOnly }
+  }
+  if (params.pick === "DRAW" && isKnockoutStage(params.matchStage)) {
+    return { ok: false, reason: t.errors.drawNotAvailable }
   }
   const existingStake = params.existingBet?.stake ?? 0
   const additionalStake = Math.max(0, params.stake - existingStake)
@@ -168,6 +174,8 @@ export async function placeBet(user: AuthedUser, input: PlaceBetInput) {
       teamsConfirmed: match.teamsConfirmed,
       userBalance: userDoc.balance,
       stake: input.stake,
+      pick: input.pick,
+      matchStage: match.stage,
       locale,
       existingBet: existingBetDoc ? { stake: existingBetDoc.stake, status: existingBetDoc.status } : null,
     })
