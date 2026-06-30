@@ -36,12 +36,13 @@ describe("placeBetSchema", () => {
     stake: DEFAULT_BET_STAKE,
   }
 
-  it("accepts the fixed stake", () => {
+  it("accepts a positive integer stake", () => {
     expect(placeBetSchema.parse(validBet)).toMatchObject(validBet)
+    expect(placeBetSchema.parse({ ...validBet, stake: 40 })).toMatchObject({ ...validBet, stake: 40 })
   })
 
-  it("rejects stakes other than the fixed stake", () => {
-    expect(() => placeBetSchema.parse({ ...validBet, stake: DEFAULT_BET_STAKE + 1 })).toThrow()
+  it("rejects non-positive stakes", () => {
+    expect(() => placeBetSchema.parse({ ...validBet, stake: 0 })).toThrow()
   })
 })
 

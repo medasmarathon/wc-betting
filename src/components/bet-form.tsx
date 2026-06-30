@@ -5,7 +5,7 @@ import { useState } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { useI18n } from "@/components/language-provider"
 import { TeamIdentity } from "@/components/team-identity"
-import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
+import { getRequiredBetStake } from "@/lib/bet-settings"
 import { formatMessage, unitLabel } from "@/lib/i18n"
 import { isKnockoutStage } from "@/lib/match-rules"
 import { formatPickLabel, getPickTeam } from "@/lib/team-display"
@@ -23,6 +23,7 @@ type BetFormProps = {
     homeTeamCode?: string
     awayTeamCode?: string
     stage: string
+    kickoffAt: string
     userBet?: {
       pick: BetPick
       stake: number
@@ -37,6 +38,7 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
   const { apiFetch } = useAuth()
   const isEditing = Boolean(match.userBet)
   const isDrawDisabled = isKnockoutStage(match.stage)
+  const requiredStake = getRequiredBetStake(match)
   const initialPick =
     match.userBet?.pick === "NO_BET" || (match.userBet?.pick === "DRAW" && isDrawDisabled)
       ? "HOME"
@@ -59,7 +61,7 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
         body: JSON.stringify({
           matchId: match.id,
           pick,
-          stake: DEFAULT_BET_STAKE,
+          stake: requiredStake,
         }),
       })
       const json = await response.json()
@@ -112,7 +114,7 @@ export function BetForm({ match, onPlaced }: BetFormProps) {
           <Text size="sm" fw={700}>
             {t.bets.stake}
           </Text>
-          <Text fw={800}>{unitLabel(DEFAULT_BET_STAKE, locale)}</Text>
+          <Text fw={800}>{unitLabel(requiredStake, locale)}</Text>
         </div>
         <Text size="sm" className="text-subtle">
           {t.bets.stakeNote}

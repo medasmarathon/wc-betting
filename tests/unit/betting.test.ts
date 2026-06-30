@@ -12,7 +12,7 @@ import {
   shouldAutoLoseMissingBets,
   shouldCreateMissingNoBetLossesOnSettlement,
 } from "@/lib/betting"
-import { DEFAULT_BET_STAKE } from "@/lib/bet-settings"
+import { DEFAULT_BET_STAKE, getRequiredBetStake } from "@/lib/bet-settings"
 
 describe("calculateResultPick", () => {
   it("returns HOME when home score is greater", () => {
@@ -57,6 +57,23 @@ describe("calculateFundContribution", () => {
 describe("DEFAULT_BET_STAKE", () => {
   it("defaults new bet slips to 10 points", () => {
     expect(DEFAULT_BET_STAKE).toBe(10)
+  })
+})
+
+describe("getRequiredBetStake", () => {
+  it("keeps matches before July 1, 2026 at 10 points", () => {
+    expect(getRequiredBetStake({ stage: "ROUND_OF_32", kickoffAt: "2026-06-30T23:59:59.999Z" })).toBe(10)
+  })
+
+  it("uses 20 points for round-of-32 matches from July 1, 2026", () => {
+    expect(getRequiredBetStake({ stage: "ROUND_OF_32", kickoffAt: "2026-07-01T00:00:00.000Z" })).toBe(20)
+  })
+
+  it("uses higher knockout stakes after the July 1 cutoff", () => {
+    expect(getRequiredBetStake({ stage: "ROUND_OF_16", kickoffAt: "2026-07-04T00:00:00.000Z" })).toBe(40)
+    expect(getRequiredBetStake({ stage: "QUARTER_FINAL", kickoffAt: "2026-07-09T00:00:00.000Z" })).toBe(80)
+    expect(getRequiredBetStake({ stage: "SEMI_FINAL", kickoffAt: "2026-07-14T00:00:00.000Z" })).toBe(160)
+    expect(getRequiredBetStake({ stage: "FINAL", kickoffAt: "2026-07-19T00:00:00.000Z" })).toBe(320)
   })
 })
 
@@ -180,6 +197,19 @@ describe("canPlaceBet", () => {
 
   it("allows draw bets for group matches", () => {
     expect(canPlaceBet({ ...base, pick: "DRAW", matchStage: "GROUP" }).ok).toBe(true)
+  })
+
+  it("requires the configured knockout stake after the July 1 cutoff", () => {
+    const roundOf16 = {
+      ...base,
+      kickoffMs: Date.UTC(2026, 6, 4),
+      kickoffAt: "2026-07-04T00:00:00.000Z",
+      stake: 40,
+      matchStage: "ROUND_OF_16" as const,
+    }
+
+    expect(canPlaceBet(roundOf16).ok).toBe(true)
+    expect(canPlaceBet({ ...roundOf16, stake: 10 }).reason).toMatch(/40 points/i)
   })
 })
 

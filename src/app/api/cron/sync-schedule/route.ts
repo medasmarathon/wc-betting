@@ -1,5 +1,6 @@
 import {
   applyAutomaticMissingBetLossesForExpiredMatches,
+  normalizePendingBetStakesForConfiguredMatches,
   resetInvalidSettledBets,
   settleCompletedMatches,
 } from "@/lib/betting"
@@ -39,11 +40,15 @@ export async function GET(request: Request) {
 
     const sync = await syncWorldCupSchedule()
     const locked = await lockExpiredOpenMatches()
+    const normalizedStakes = await normalizePendingBetStakesForConfiguredMatches()
     const repairedBets = await resetInvalidSettledBets()
     const automaticLosses = await applyAutomaticMissingBetLossesForExpiredMatches()
     const settlement = await settleCompletedMatches()
 
-    return Response.json({ sync, locked, repairedBets, automaticLosses, settlement }, { headers: { "Cache-Control": "no-store" } })
+    return Response.json(
+      { sync, locked, normalizedStakes, repairedBets, automaticLosses, settlement },
+      { headers: { "Cache-Control": "no-store" } },
+    )
   } catch (error) {
     return handleRouteError(error)
   }
