@@ -101,6 +101,7 @@ describe("shouldChargeAutomaticMissingBetLoss", () => {
 
 describe("hasCompletedFinalScore", () => {
   it("requires a completed match with both final scores", () => {
+    expect(hasCompletedFinalScore({ status: "LOCKED", homeScore: 2, awayScore: 1 })).toBe(true)
     expect(hasCompletedFinalScore({ status: "COMPLETED", homeScore: 2, awayScore: 1 })).toBe(true)
     expect(hasCompletedFinalScore({ status: "SETTLED", homeScore: 2, awayScore: 1 })).toBe(true)
     expect(hasCompletedFinalScore({ status: "LIVE", homeScore: 2, awayScore: 1 })).toBe(false)
@@ -113,7 +114,7 @@ describe("shouldCreateMissingNoBetLossesOnSettlement", () => {
     expect(
       shouldCreateMissingNoBetLossesOnSettlement({
         kickoffAt: "2026-06-25T00:00:00.000Z",
-        status: "COMPLETED",
+        status: "LOCKED",
         homeScore: 2,
         awayScore: 1,
       }),

@@ -1,12 +1,6 @@
-import {
-  applyAutomaticMissingBetLossesForExpiredMatches,
-  normalizePendingBetStakesForConfiguredMatches,
-  resetInvalidSettledBets,
-  settleCompletedMatches,
-} from "@/lib/betting"
 import { handleRouteError, requireAdmin } from "@/lib/auth"
 import { claimScheduleSyncSlot } from "@/lib/schedule-sync-rate-limit"
-import { lockExpiredOpenMatches, syncWorldCupSchedule } from "@/lib/schedule-sync"
+import { runScheduleSyncMaintenance } from "@/lib/schedule-sync-maintenance"
 
 export async function GET(request: Request) {
   try {
@@ -38,17 +32,7 @@ export async function GET(request: Request) {
       }
     }
 
-    const sync = await syncWorldCupSchedule()
-    const locked = await lockExpiredOpenMatches()
-    const normalizedStakes = await normalizePendingBetStakesForConfiguredMatches()
-    const repairedBets = await resetInvalidSettledBets()
-    const automaticLosses = await applyAutomaticMissingBetLossesForExpiredMatches()
-    const settlement = await settleCompletedMatches()
-
-    return Response.json(
-      { sync, locked, normalizedStakes, repairedBets, automaticLosses, settlement },
-      { headers: { "Cache-Control": "no-store" } },
-    )
+    return Response.json(await runScheduleSyncMaintenance(), { headers: { "Cache-Control": "no-store" } })
   } catch (error) {
     return handleRouteError(error)
   }

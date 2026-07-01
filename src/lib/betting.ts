@@ -73,7 +73,7 @@ export function shouldChargeAutomaticMissingBetLoss(user: Pick<UserDoc, "isActiv
 
 export function hasCompletedFinalScore(match: Pick<MatchDoc, "status" | "homeScore" | "awayScore">) {
   return (
-    ["COMPLETED", "SETTLED"].includes(match.status) &&
+    ["LOCKED", "COMPLETED", "SETTLED"].includes(match.status) &&
     match.homeScore !== undefined &&
     match.awayScore !== undefined
   )
@@ -886,13 +886,13 @@ export async function settleCompletedMatches(db: Firestore = getAdminDb()) {
     isActive: true,
   }
   const result = { settled: 0, updated: 0, skipped: 0, failed: 0 }
-  const [completedSnap, settledSnap] = await Promise.all([
-    db.collection("matches").where("status", "==", "COMPLETED").get(),
+  const [settlementCandidateSnap, settledSnap] = await Promise.all([
+    db.collection("matches").where("status", "in", ["LOCKED", "COMPLETED"]).get(),
     db.collection("matches").where("status", "==", "SETTLED").get(),
   ])
   const docsById = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>()
 
-  for (const doc of completedSnap.docs) docsById.set(doc.id, doc)
+  for (const doc of settlementCandidateSnap.docs) docsById.set(doc.id, doc)
   for (const doc of settledSnap.docs) {
     const match = doc.data() as MatchDoc
     if (shouldAutoLoseMissingBets(match.kickoffAt)) docsById.set(doc.id, doc)

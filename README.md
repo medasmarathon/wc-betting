@@ -221,7 +221,7 @@ Important:
 - `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` must only be set in Vercel server environment variables.
 - Store `FIREBASE_PRIVATE_KEY` with escaped newlines if needed, using `\n`.
 - `ADMIN_EMAILS` is a comma-separated list, for example `admin@example.com,second-admin@example.com`.
-- `CRON_SECRET` lets scheduled jobs trigger schedule sync without consuming the manual admin rate limit.
+- `CRON_SECRET` protects scheduled schedule sync calls.
 - `SCHEDULE_SYNC_SOURCE` defaults to `espn`.
 - `SCHEDULE_SYNC_FALLBACK` defaults to `thestatsapi`.
 
@@ -231,11 +231,12 @@ The app can import the WC 2026 schedule from free JSON sources using:
 
 ```text
 GET /api/cron/sync-schedule
+POST /api/admin/sync-schedule
 ```
 
-The endpoint requires either an admin Firebase bearer token or Vercel Cron's `Authorization: Bearer ${CRON_SECRET}` header. Local/manual cron calls can also use the `x-cron-secret` header.
+The cron endpoint requires either an admin Firebase bearer token or Vercel Cron's `Authorization: Bearer ${CRON_SECRET}` header. Local/manual cron calls can also use the `x-cron-secret` header.
 
-Admins can also trigger it from the Admin dashboard with the Sync schedule button. Admin-triggered calls are limited to once per hour and return `429` with `Retry-After` when the hourly slot has already been used. The Admin dashboard also keeps an hourly browser-session refresh running while an admin has the page open, which is the no-cron option for Vercel projects that cannot run hourly Cron jobs. Cron-secret calls bypass the manual limit. `vercel.json` runs it once per day at 15:00 UTC, which is 11:00 ET during the tournament.
+Admins can trigger the same sync and maintenance pipeline from the Admin dashboard with the Sync schedule button. That button calls `POST /api/admin/sync-schedule` synchronously with the admin Firebase bearer token and does not use the manual schedule-sync rate limiter. `vercel.json` runs the cron endpoint once per day at 15:00 UTC, which is 11:00 ET during the tournament.
 
 For local development, `npm run cron:local` calls the configured `LOCAL_CRON_JOBS` on `LOCAL_CRON_INTERVAL_MS`. It reads `.env.local`, uses `LOCAL_CRON_BASE_URL`, and refuses to run without emulator environment variables unless `LOCAL_CRON_ALLOW_NON_EMULATOR=true` is set.
 

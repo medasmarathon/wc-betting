@@ -5,8 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { AuthGate, useAuth } from "@/components/auth-provider"
 import { StatusBadge } from "@/components/status-badge"
 
-const SCHEDULE_SYNC_INTERVAL_MS = 60 * 60 * 1000
-
 type Match = { id: string; homeTeam: string; awayTeam: string; status: string }
 type User = { id: string; displayName: string; balance: number; role: string; isActive: boolean }
 type AuditLog = { id: string; action: string; entityType: string; actorEmail?: string }
@@ -64,7 +62,7 @@ function AdminContent() {
     setScheduleSyncPending(true)
 
     try {
-      const response = await apiFetch("/api/cron/sync-schedule")
+      const response = await apiFetch("/api/admin/sync-schedule", { method: "POST" })
       const json = (await response.json().catch(() => ({}))) as ScheduleSyncResponse & ScheduleSyncError
 
       if (!response.ok) {
@@ -79,14 +77,6 @@ function AdminContent() {
       setScheduleSyncPending(false)
     }
   }, [apiFetch, load])
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      void triggerScheduleSync()
-    }, SCHEDULE_SYNC_INTERVAL_MS)
-
-    return () => window.clearInterval(intervalId)
-  }, [triggerScheduleSync])
 
   return (
     <main className="page grid gap-5">
