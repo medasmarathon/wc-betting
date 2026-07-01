@@ -11,8 +11,8 @@ export async function POST(request: Request, context: RouteContext) {
     const admin = await requireAdmin(request)
     const { matchId } = await context.params
     const input = resultInputSchema.parse(await request.json())
-    await enterResult(matchId, admin, input)
-    return Response.json({ ok: true })
+    const settlement = await enterResult(matchId, admin, input)
+    return Response.json({ ok: true, settlement })
   } catch (error) {
     return handleRouteError(error)
   }

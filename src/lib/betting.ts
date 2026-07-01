@@ -351,6 +351,8 @@ export async function enterResult(
       createdAt: FieldValue.serverTimestamp(),
     })
   })
+
+  return settleMatch(matchId, admin, db)
 }
 
 export async function settleMatch(matchId: string, admin: AuthedUser, db: Firestore = getAdminDb()) {
