@@ -114,10 +114,31 @@ describe("admin sync schedule route", () => {
     expect(json).toEqual({ step: "sync", sync: mocks.maintenanceResult.sync })
     expect(mocks.requireAdmin).toHaveBeenCalledTimes(1)
     expect(mocks.claimScheduleSyncSlot).not.toHaveBeenCalled()
-    expect(mocks.runScheduleSyncMaintenanceStep).toHaveBeenCalledWith("sync")
+    expect(mocks.runScheduleSyncMaintenanceStep).toHaveBeenCalledWith("sync", undefined, {
+      userId: undefined,
+      matchIds: undefined,
+      finalize: false,
+    })
   })
 
-  it("runs the requested maintenance step", async () => {
+  it("runs requested non-user-scoped maintenance steps", async () => {
+    const { POST } = await import("@/app/api/admin/sync-schedule/route")
+
+    const response = await POST(
+      new Request("http://localhost/api/admin/sync-schedule?step=lock", { method: "POST" }),
+    )
+    const json = await response.json()
+
+    expect(response.ok).toBe(true)
+    expect(json).toEqual({ step: "lock", sync: mocks.maintenanceResult.sync })
+    expect(mocks.runScheduleSyncMaintenanceStep).toHaveBeenCalledWith("lock", undefined, {
+      userId: undefined,
+      matchIds: undefined,
+      finalize: false,
+    })
+  })
+
+  it("rejects user-scoped maintenance steps without a user id", async () => {
     const { POST } = await import("@/app/api/admin/sync-schedule/route")
 
     const response = await POST(
@@ -125,9 +146,27 @@ describe("admin sync schedule route", () => {
     )
     const json = await response.json()
 
+    expect(response.status).toBe(400)
+    expect(json).toEqual({ error: "settle requires userId" })
+    expect(mocks.runScheduleSyncMaintenanceStep).not.toHaveBeenCalled()
+  })
+
+  it("passes user-scoped step options from the request body", async () => {
+    const { POST } = await import("@/app/api/admin/sync-schedule/route")
+
+    const response = await POST(
+      new Request("http://localhost/api/admin/sync-schedule?step=repair-bets", {
+        method: "POST",
+        body: JSON.stringify({ userId: "user-1", matchIds: ["match-1"], finalize: true }),
+      }),
+    )
+
     expect(response.ok).toBe(true)
-    expect(json).toEqual({ step: "settle", sync: mocks.maintenanceResult.sync })
-    expect(mocks.runScheduleSyncMaintenanceStep).toHaveBeenCalledWith("settle")
+    expect(mocks.runScheduleSyncMaintenanceStep).toHaveBeenCalledWith("repair-bets", undefined, {
+      userId: "user-1",
+      matchIds: ["match-1"],
+      finalize: true,
+    })
   })
 
   it("rejects invalid maintenance steps", async () => {

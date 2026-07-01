@@ -9,8 +9,14 @@ export async function POST(request: Request) {
   try {
     await requireAdmin(request)
     const step = getScheduleSyncStep(request)
+    const options = await getScheduleSyncStepOptions(request)
+    if (isUserScopedStep(step) && !options.userId) {
+      throw new HttpError(400, `${step} requires userId`)
+    }
 
-    return Response.json(await runScheduleSyncMaintenanceStep(step), { headers: { "Cache-Control": "no-store" } })
+    return Response.json(await runScheduleSyncMaintenanceStep(step, undefined, options), {
+      headers: { "Cache-Control": "no-store" },
+    })
   } catch (error) {
     return handleRouteError(error)
   }
@@ -24,4 +30,21 @@ function getScheduleSyncStep(request: Request): ScheduleSyncMaintenanceStep {
 
 function isScheduleSyncStep(step: string): step is ScheduleSyncMaintenanceStep {
   return SCHEDULE_SYNC_MAINTENANCE_STEPS.includes(step as ScheduleSyncMaintenanceStep)
+}
+
+function isUserScopedStep(step: ScheduleSyncMaintenanceStep) {
+  return !["sync", "lock"].includes(step)
+}
+
+async function getScheduleSyncStepOptions(request: Request) {
+  const body = await request.json().catch(() => ({}))
+  if (!body || typeof body !== "object") return {}
+
+  return {
+    userId: typeof body.userId === "string" ? body.userId : undefined,
+    matchIds: Array.isArray(body.matchIds)
+      ? body.matchIds.filter((matchId: unknown) => typeof matchId === "string")
+      : undefined,
+    finalize: body.finalize === true,
+  }
 }
