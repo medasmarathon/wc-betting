@@ -236,7 +236,7 @@ POST /api/admin/sync-schedule
 
 The cron endpoint requires either an admin Firebase bearer token or Vercel Cron's `Authorization: Bearer ${CRON_SECRET}` header. Local/manual cron calls can also use the `x-cron-secret` header.
 
-Admins can trigger the same sync and maintenance pipeline from the Admin dashboard with the Sync schedule button. That button calls `POST /api/admin/sync-schedule` synchronously with the admin Firebase bearer token and does not use the manual schedule-sync rate limiter. `vercel.json` runs the cron endpoint once per day at 15:00 UTC, which is 11:00 ET during the tournament.
+Admins can trigger the same sync and maintenance pipeline from the Admin dashboard with the Sync schedule button. The dashboard calls `POST /api/admin/sync-schedule?step=...` one step at a time with the admin Firebase bearer token, updates progress after each step, and does not use the manual schedule-sync rate limiter. `vercel.json` runs the cron endpoint once per day at 15:00 UTC, which is 11:00 ET during the tournament.
 
 For local development, `npm run cron:local` calls the configured `LOCAL_CRON_JOBS` on `LOCAL_CRON_INTERVAL_MS`. It reads `.env.local`, uses `LOCAL_CRON_BASE_URL`, and refuses to run without emulator environment variables unless `LOCAL_CRON_ALLOW_NON_EMULATOR=true` is set.
 

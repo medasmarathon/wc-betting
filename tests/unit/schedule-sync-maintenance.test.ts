@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => {
   const calls: string[] = []
@@ -43,6 +43,25 @@ vi.mock("@/lib/schedule-sync", () => ({
   lockExpiredOpenMatches: mocks.lockExpiredOpenMatches,
   syncWorldCupSchedule: mocks.syncWorldCupSchedule,
 }))
+
+beforeEach(() => {
+  mocks.calls.length = 0
+  vi.clearAllMocks()
+})
+
+describe("runScheduleSyncMaintenanceStep", () => {
+  it("runs a single requested maintenance step", async () => {
+    const db = {} as FirebaseFirestore.Firestore
+    const { runScheduleSyncMaintenanceStep } = await import("@/lib/schedule-sync-maintenance")
+
+    const result = await runScheduleSyncMaintenanceStep("settle", db)
+
+    expect(result).toEqual({ step: "settle", settlement: { settled: 1, updated: 0, skipped: 0, failed: 0 } })
+    expect(mocks.calls).toEqual(["settleCompletedMatches"])
+    expect(mocks.settleCompletedMatches).toHaveBeenCalledWith(db)
+    expect(mocks.syncWorldCupSchedule).not.toHaveBeenCalled()
+  })
+})
 
 describe("runScheduleSyncMaintenance", () => {
   it("runs schedule sync and post-sync maintenance in settlement order", async () => {

@@ -8,6 +8,16 @@ import { StatusBadge } from "@/components/status-badge"
 type Match = { id: string; homeTeam: string; awayTeam: string; status: string }
 type User = { id: string; displayName: string; balance: number; role: string; isActive: boolean }
 type AuditLog = { id: string; action: string; entityType: string; actorEmail?: string }
+const SCHEDULE_SYNC_STEPS = [
+  { key: "sync", label: "Schedule import" },
+  { key: "lock", label: "Expired match lock" },
+  { key: "normalize-stakes", label: "Stake normalization" },
+  { key: "repair-bets", label: "Settled bet repair" },
+  { key: "automatic-losses", label: "Automatic no-bet losses" },
+  { key: "settle", label: "Match settlement" },
+] as const
+
+type ScheduleSyncStepKey = (typeof SCHEDULE_SYNC_STEPS)[number]["key"]
 type ScheduleSyncResponse = {
   sync?: { source?: string; created?: number; updated?: number; skipped?: number; failed?: number }
   locked?: number
@@ -16,6 +26,7 @@ type ScheduleSyncResponse = {
   automaticLosses?: { applied?: number; skipped?: number; failed?: number }
   settlement?: { settled?: number; updated?: number; skipped?: number; failed?: number }
 }
+type ScheduleSyncStepResponse = ScheduleSyncResponse & { step?: ScheduleSyncStepKey }
 type ScheduleSyncError = { error?: string; retryAfterSeconds?: number; nextAllowedAt?: string }
 
 export default function AdminPage() {
@@ -60,18 +71,30 @@ function AdminContent() {
     if (scheduleSyncInFlight.current) return
     scheduleSyncInFlight.current = true
     setScheduleSyncPending(true)
+    const result: ScheduleSyncResponse = {}
 
     try {
-      const response = await apiFetch("/api/admin/sync-schedule", { method: "POST" })
-      const json = (await response.json().catch(() => ({}))) as ScheduleSyncResponse & ScheduleSyncError
+      setScheduleSyncMessage("Starting schedule sync...")
 
-      if (!response.ok) {
-        setScheduleSyncMessage(formatScheduleSyncError(json))
-        return
+      for (const [index, syncStep] of SCHEDULE_SYNC_STEPS.entries()) {
+        setScheduleSyncMessage(formatScheduleSyncProgress(result, syncStep.label))
+
+        const response = await apiFetch(`/api/admin/sync-schedule?step=${syncStep.key}`, { method: "POST" })
+        const json = (await response.json().catch(() => ({}))) as ScheduleSyncStepResponse & ScheduleSyncError
+
+        if (!response.ok) {
+          setScheduleSyncMessage(formatScheduleSyncError(json, syncStep.label))
+          return
+        }
+
+        Object.assign(result, stepResultPayload(json))
+        setScheduleSyncMessage(formatScheduleSyncProgress(result))
+
+        if (index === 0) void load()
       }
 
-      setScheduleSyncMessage(formatScheduleSyncSuccess(json))
-      load()
+      setScheduleSyncMessage(formatScheduleSyncSuccess(result))
+      void load()
     } finally {
       scheduleSyncInFlight.current = false
       setScheduleSyncPending(false)
@@ -151,6 +174,17 @@ function AdminContent() {
   )
 }
 
+function stepResultPayload(response: ScheduleSyncStepResponse): ScheduleSyncResponse {
+  const payload: ScheduleSyncResponse = {}
+  if (response.sync !== undefined) payload.sync = response.sync
+  if (response.locked !== undefined) payload.locked = response.locked
+  if (response.normalizedStakes !== undefined) payload.normalizedStakes = response.normalizedStakes
+  if (response.repairedBets !== undefined) payload.repairedBets = response.repairedBets
+  if (response.automaticLosses !== undefined) payload.automaticLosses = response.automaticLosses
+  if (response.settlement !== undefined) payload.settlement = response.settlement
+  return payload
+}
+
 function DashboardPanelSkeleton({ rows }: { rows: number }) {
   return (
     <div className="grid gap-2" role="status" aria-label="Loading admin data">
@@ -162,6 +196,22 @@ function DashboardPanelSkeleton({ rows }: { rows: number }) {
       ))}
     </div>
   )
+}
+
+function formatScheduleSyncProgress(result: ScheduleSyncResponse, currentStep?: string) {
+  const completed = [
+    result.sync ? "Schedule import" : null,
+    result.locked !== undefined ? "Expired match lock" : null,
+    result.normalizedStakes ? "Stake normalization" : null,
+    result.repairedBets ? "Settled bet repair" : null,
+    result.automaticLosses ? "Automatic no-bet losses" : null,
+    result.settlement ? "Match settlement" : null,
+  ].filter(Boolean)
+
+  return [
+    completed.length ? `Completed: ${completed.join(", ")}.` : null,
+    currentStep ? `Running: ${currentStep}...` : null,
+  ].filter(Boolean).join(" ")
 }
 
 function formatScheduleSyncSuccess(result: ScheduleSyncResponse) {
@@ -182,12 +232,13 @@ function formatScheduleSyncSuccess(result: ScheduleSyncResponse) {
   ].join(" ")
 }
 
-function formatScheduleSyncError(error: ScheduleSyncError) {
+function formatScheduleSyncError(error: ScheduleSyncError, stepLabel?: string) {
+  const prefix = stepLabel ? `${stepLabel} failed. ` : ""
   if (error.nextAllowedAt) {
-    return `Schedule sync is rate limited. Try again after ${new Date(error.nextAllowedAt).toLocaleString()}.`
+    return `${prefix}Schedule sync is rate limited. Try again after ${new Date(error.nextAllowedAt).toLocaleString()}.`
   }
   if (error.retryAfterSeconds) {
-    return `Schedule sync is rate limited. Try again in ${Math.ceil(error.retryAfterSeconds / 60)} minutes.`
+    return `${prefix}Schedule sync is rate limited. Try again in ${Math.ceil(error.retryAfterSeconds / 60)} minutes.`
   }
-  return error.error ?? "Unable to sync schedule."
+  return `${prefix}${error.error ?? "Unable to sync schedule."}`
 }

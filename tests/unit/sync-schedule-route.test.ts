@@ -15,11 +15,24 @@ const mocks = vi.hoisted(() => {
     claimScheduleSyncSlot: vi.fn(),
     requireAdmin: vi.fn(),
     runScheduleSyncMaintenance: vi.fn(async () => maintenanceResult),
+    runScheduleSyncMaintenanceStep: vi.fn(async (step: string) => ({ step, sync: maintenanceResult.sync })),
   }
 })
 
 vi.mock("@/lib/auth", () => ({
-  handleRouteError: (error: unknown) => Response.json({ error: String(error) }, { status: 500 }),
+  handleRouteError: (error: unknown) =>
+    Response.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: typeof error === "object" && error && "status" in error ? Number(error.status) : 500 },
+    ),
+  HttpError: class HttpError extends Error {
+    constructor(
+      public status: number,
+      message: string,
+    ) {
+      super(message)
+    }
+  },
   requireAdmin: mocks.requireAdmin,
 }))
 
@@ -28,7 +41,16 @@ vi.mock("@/lib/schedule-sync-rate-limit", () => ({
 }))
 
 vi.mock("@/lib/schedule-sync-maintenance", () => ({
+  SCHEDULE_SYNC_MAINTENANCE_STEPS: [
+    "sync",
+    "lock",
+    "normalize-stakes",
+    "repair-bets",
+    "automatic-losses",
+    "settle",
+  ],
   runScheduleSyncMaintenance: mocks.runScheduleSyncMaintenance,
+  runScheduleSyncMaintenanceStep: mocks.runScheduleSyncMaintenanceStep,
 }))
 
 describe("sync schedule cron route", () => {
@@ -82,16 +104,42 @@ describe("admin sync schedule route", () => {
     vi.clearAllMocks()
   })
 
-  it("runs maintenance synchronously for admins without claiming a cron rate-limit slot", async () => {
+  it("runs the first maintenance step by default without claiming a cron rate-limit slot", async () => {
     const { POST } = await import("@/app/api/admin/sync-schedule/route")
 
     const response = await POST(new Request("http://localhost/api/admin/sync-schedule", { method: "POST" }))
     const json = await response.json()
 
     expect(response.ok).toBe(true)
-    expect(json).toEqual(mocks.maintenanceResult)
+    expect(json).toEqual({ step: "sync", sync: mocks.maintenanceResult.sync })
     expect(mocks.requireAdmin).toHaveBeenCalledTimes(1)
     expect(mocks.claimScheduleSyncSlot).not.toHaveBeenCalled()
-    expect(mocks.runScheduleSyncMaintenance).toHaveBeenCalledTimes(1)
+    expect(mocks.runScheduleSyncMaintenanceStep).toHaveBeenCalledWith("sync")
+  })
+
+  it("runs the requested maintenance step", async () => {
+    const { POST } = await import("@/app/api/admin/sync-schedule/route")
+
+    const response = await POST(
+      new Request("http://localhost/api/admin/sync-schedule?step=settle", { method: "POST" }),
+    )
+    const json = await response.json()
+
+    expect(response.ok).toBe(true)
+    expect(json).toEqual({ step: "settle", sync: mocks.maintenanceResult.sync })
+    expect(mocks.runScheduleSyncMaintenanceStep).toHaveBeenCalledWith("settle")
+  })
+
+  it("rejects invalid maintenance steps", async () => {
+    const { POST } = await import("@/app/api/admin/sync-schedule/route")
+
+    const response = await POST(
+      new Request("http://localhost/api/admin/sync-schedule?step=unknown", { method: "POST" }),
+    )
+    const json = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(json).toEqual({ error: "Invalid schedule sync step" })
+    expect(mocks.runScheduleSyncMaintenanceStep).not.toHaveBeenCalled()
   })
 })
